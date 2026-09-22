@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "source": "SYNTHETIC_GENERATED",
+    "description": "Simulated AIS feeds including regular broadcasts and deliberate outages",
+    "generated_at": "2026-09-22T17:44:17.159435+00:00"
+  },
+  "active_broadcasts": [
+    {
+      "mmsi": "412345678",
+      "imo": "9345678",
+      "vessel_name": "PACIFIC GLORY",
+      "callsign": "VRAB2",
+      "ship_type": "Cargo",
+      "latitude": 20.108,
+      "longitude": 63.424,
+      "sog": 12.4,
+      "cog": 112.0,
+      "heading": 111.0,
+      "draught_m": 9.2,
+      "destination": "MUNDRA",
+      "timestamp": "2026-09-01T03:42:00+00:00",
+      "flag_country": "Liberia"
+    }
+  ],
+  "historical_gaps": [
+    {
+      "mmsi": "352999001",
+      "gap_start": "2026-08-30T20:42:00+00:00",
+      "gap_end": null,
+      "duration_hours": 31.0,
+      "start_lat": 24.15,
+      "start_lon": 58.2,
+      "end_lat": null,
+      "end_lon": null,
+      "distance_covered_km": 680.0,
+      "implied_speed_knots": 11.8,
+      "is_suspicious": true,
+      "justification": "AIS transponder disabled upon entering Arabian Sea sanctions evasion corridor."
+    }
+  ]
+}

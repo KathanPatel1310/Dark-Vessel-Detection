@@ -1,0 +1,64 @@
+# System-wide Configuration for Maritime Intelligence System
+system:
+  environment: "development"
+  log_level: "INFO"
+  storage_budget_gb: 10.0 # Strict storage warning ceiling
+
+paths:
+  data_raw: "data/raw"
+  data_interim: "data/interim"
+  data_processed: "data/processed"
+  data_external: "data/external"
+  data_fixtures: "data/fixtures"
+  models_dir: "models"
+
+# Region of Interest: Arabian Sea & Western Indian Ocean Corridor
+roi:
+  name: "Arabian Sea - Western India EEZ"
+  bounds:
+    min_lat: 12.0
+    max_lat: 24.0
+    min_lon: 58.0
+    max_lon: 74.0
+  critical_zones:
+    - name: "Gulf of Oman Approach"
+      lat: 23.5
+      lon: 59.5
+      radius_km: 150.0
+      risk_type: "SANCTIONS_EVASION_CORRIDOR"
+    - name: "India Western EEZ Boundary"
+      lat: 18.0
+      lon: 68.5
+      radius_km: 200.0
+      risk_type: "EEZ_INCURSION_RISK"
+
+# Detection & Fusion Thresholds
+fusion:
+  spatial_match_threshold_km: 5.0
+  temporal_match_window_minutes: 30
+  heading_tolerance_degrees: 35.0
+  speed_tolerance_knots: 4.0
+  length_ratio_tolerance: 0.35
+
+# Analytics & Anomaly Detection
+analytics:
+  min_dark_duration_hours: 6.0
+  suspicious_gap_threshold_hours: 12.0
+  loitering_speed_knots: 2.5
+  loitering_duration_hours: 4.0
+
+# LLM Configuration (Fine-Tuning & Inference)
+llm:
+  primary_model_id: "Qwen/Qwen2.5-7B-Instruct"
+  fallback_model_id: "Qwen/Qwen2.5-3B-Instruct" # ultra low storage/VRAM fallback (~2GB 4-bit)
+  quantization: "4bit"
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  max_seq_length: 2048
+
+# Agentic Orchestration (LangGraph)
+agent:
+  max_iterations: 8
+  timeout_seconds: 60
+  human_in_the_loop: true

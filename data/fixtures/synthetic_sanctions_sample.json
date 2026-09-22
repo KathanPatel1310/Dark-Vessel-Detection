@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "source": "SYNTHETIC_GENERATED",
+    "description": "Simulated OFAC SDN and UN maritime sanctions watchlist sample",
+    "generated_at": "2026-09-22T17:44:17.160881+00:00"
+  },
+  "sanctioned_entities": [
+    {
+      "source_list": "OFAC_SDN",
+      "entity_name": "STARLIGHT TRADER",
+      "entity_type": "VESSEL",
+      "matched_imo": "9284728",
+      "matched_mmsi": "352999001",
+      "matched_callsign": "H9ZT",
+      "flag_state": "Panama",
+      "sanction_programs": [
+        "IRAN-EO13846"
+      ],
+      "designation_date": "2024-03-15",
+      "remarks": "Subject to secondary sanctions for illicit ship-to-ship petroleum transport."
+    }
+  ]
+}

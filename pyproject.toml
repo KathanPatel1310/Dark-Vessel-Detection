@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maritime-intelligence-system"
+version = "0.1.0"
+description = "Academic prototype for SAR + AIS fusion, maritime feature engineering, agentic reasoning, and fine-tuned LLM intelligence reporting"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Maritime AI Research Team" }
+]
+license = { text = "MIT" }
+keywords = ["maritime-surveillance", "sar", "ais", "dark-vessel", "feature-engineering", "agentic-ai", "llm-finetuning"]
+
+dependencies = [
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "pyyaml>=6.0.1",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "scipy>=1.10.0",
+    "scikit-learn>=1.3.0",
+    "shapely>=2.0.0",
+    "requests>=2.31.0",
+    "httpx>=0.25.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+agents = [
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+]
+geo = [
+    "geopandas>=0.14.0",
+    "pyproj>=3.6.0",
+]
+cv = [
+    "opencv-python-headless>=4.8.0",
+    "ultralytics>=8.1.0",
+]
+training = [
+    "torch>=2.2.0",
+    "transformers>=4.40.0",
+    "peft>=0.10.0",
+    "bitsandbytes>=0.43.0",
+    "trl>=0.8.0",
+    "accelerate>=0.29.0",
+    "datasets>=2.18.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+]
+all = [
+    "maritime-intelligence-system[agents,geo,cv,training,dev]"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "agents*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

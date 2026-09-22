@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "source": "SYNTHETIC_GENERATED",
+    "description": "Simulated ITU/IMO registry lookup database",
+    "generated_at": "2026-09-22T17:44:17.161437+00:00"
+  },
+  "vessels": [
+    {
+      "imo": "9284728",
+      "mmsi": "352999001",
+      "name": "STARLIGHT TRADER",
+      "callsign": "H9ZT",
+      "flag": "Panama",
+      "vessel_type": "Crude Oil Tanker",
+      "built_year": 2008,
+      "length_overall_m": 183.0,
+      "beam_m": 27.4,
+      "gross_tonnage": 28500.0,
+      "deadweight_tonnage": 46000.0,
+      "owner_name": "Oceanic Zenith Shipping Ltd",
+      "operator_name": "Al-Bahar Ship Management"
+    },
+    {
+      "imo": "9345678",
+      "mmsi": "412345678",
+      "name": "PACIFIC GLORY",
+      "callsign": "VRAB2",
+      "flag": "Liberia",
+      "vessel_type": "Container Ship",
+      "built_year": 2015,
+      "length_overall_m": 86.0,
+      "beam_m": 14.2,
+      "gross_tonnage": 4200.0,
+      "deadweight_tonnage": 6100.0,
+      "owner_name": "Glory Maritime Services Inc",
+      "operator_name": "Global Feeder Line"
+    }
+  ]
+}

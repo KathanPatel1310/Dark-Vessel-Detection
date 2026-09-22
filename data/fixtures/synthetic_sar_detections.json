@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "source": "SYNTHETIC_GENERATED",
+    "description": "Simulated Sentinel-1 SAR detections in the Arabian Sea corridor",
+    "scene_id": "S1A_IW_GRDH_1SDV_20260901T034200_SYNTHETIC",
+    "generated_at": "2026-09-22T17:44:17.158967+00:00"
+  },
+  "detections": [
+    {
+      "detection_id": "SAR-DET-2026-001",
+      "scene_id": "S1A_IW_GRDH_1SDV_20260901T034200_SYNTHETIC",
+      "timestamp": "2026-09-01T03:42:00+00:00",
+      "latitude": 19.342,
+      "longitude": 62.115,
+      "length_m": 182.5,
+      "width_m": 27.2,
+      "aspect_ratio": 6.71,
+      "heading_deg": 248.0,
+      "area_m2": 4964.0,
+      "peak_backscatter_db": 18.4,
+      "mean_backscatter_db": 11.2,
+      "background_mean_db": -16.5,
+      "target_clutter_ratio_db": 27.7,
+      "sensor": "SENTINEL-1",
+      "polarization": "VV",
+      "confidence": 0.94,
+      "bbox_pixel": [
+        420,
+        1150,
+        475,
+        1260
+      ]
+    },
+    {
+      "detection_id": "SAR-DET-2026-002",
+      "scene_id": "S1A_IW_GRDH_1SDV_20260901T034200_SYNTHETIC",
+      "timestamp": "2026-09-01T03:42:00+00:00",
+      "latitude": 20.105,
+      "longitude": 63.42,
+      "length_m": 85.0,
+      "width_m": 14.0,
+      "aspect_ratio": 6.07,
+      "heading_deg": 110.0,
+      "area_m2": 1190.0,
+      "peak_backscatter_db": 14.1,
+      "mean_backscatter_db": 8.5,
+      "background_mean_db": -17.0,
+      "target_clutter_ratio_db": 25.5,
+      "sensor": "SENTINEL-1",
+      "polarization": "VV",
+      "confidence": 0.89,
+      "bbox_pixel": [
+        800,
+        2100,
+        840,
+        2180
+      ]
+    }
+  ]
+}
