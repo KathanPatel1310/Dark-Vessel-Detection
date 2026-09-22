@@ -3,7 +3,7 @@ Downloads and builds high-density real-world data tables:
 1. Real AIS vessel traffic trajectories (~100,000+ real pings: MMSI, SOG, COG, Draught, Lat, Lon)
 2. Real Sentinel-1 SAR maritime detections (~35,000+ real satellite radar targets with dark vessel flags)
 3. High-precision UNCLOS EEZ maritime sovereign boundaries for the Arabian Sea & Indian Ocean
-Total storage footprint: strictly under 60 MB compressed, zero bloated uncompressed files.
+Uses optimized high-density columnar format with snappy parquet compression.
 """
 
 import gzip

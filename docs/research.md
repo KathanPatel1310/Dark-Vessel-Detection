@@ -26,9 +26,9 @@ The original project document (*"Dark Vessel Detection & Maritime Intelligence S
 ### 2.2 Copernicus Data Space Ecosystem (CDSE)
 *   **Current State:** CDSE (dataspace.copernicus.eu) is ESA's sole official portal for Sentinel data. Access is governed via modern OData and STAC (SpatioTemporal Asset Catalog) APIs.
 *   **Constellation Status:** Sentinel-1A operated for 12 years (retired mid-2026). Sentinel-1C was launched December 5, 2024 and is fully operational; Sentinel-1D was launched November 2025. Dual-satellite global revisit cadence is maintained.
-*   **Access Method:** Programmatic access uses `pystac-client` or direct HTTPS REST/OData requests. However, full Sentinel-1 GRD scenes are 1.0 to 1.6 GB per scene. To respect local storage constraints, the project must avoid bulk downloading full scenes and instead query bounding box chips or use pre-extracted feature metadata.
+*   **Access Method:** Programmatic access uses `pystac-client` or direct HTTPS REST/OData requests. To maximize pipeline throughput and query speed, the system avoids transferring monolithic multi-gigabyte raster files, querying targeted spatial chips and analysis-ready feature metadata instead.
 
-### 2.3 Public SAR Vessel Datasets & Storage Footprints
+### 2.3 Public SAR Vessel Datasets & Remote Sensing Benchmarks
 *   **SSDD (SAR Ship Detection Dataset):** 1,160 images, ~35 MB compressed. Ideal lightweight benchmark for radar detection and dimension validation.
 *   **HRSID (High-Resolution SAR Images Dataset):** 5,604 high-res crop chips, ~800 MB to 1 GB. Contains vessel segmentations and scale variations.
 *   **OpenSARShip:** ~11,300 chips paired with AIS records, ~1.5 GB. Useful for AIS-SAR dimension correlation.
@@ -54,7 +54,7 @@ The original project document (*"Dark Vessel Detection & Maritime Intelligence S
 ### 2.7 Sanctions Intelligence Sources
 *   **U.S. OFAC SDN List:** The official Department of the Treasury Sanctions List Service provides a compressed XML download (`sdn_xml.zip`) that is **only ~15 MB** and requires no API key. It contains complete entity details, vessel IMO numbers, callsigns, flag states, and sanction programs (e.g. IRAN, RUSSIA, DPRK).
 *   **UN Security Council Consolidated List:** Official XML file available free of charge (**~2 MB**).
-*   **OpenSanctions:** An excellent aggregator, but the full FollowTheMoney export is **2.42 GB**. For strict storage control, parsing the raw OFAC and UN XML files directly is vastly superior (total storage < 20 MB).
+*   **OpenSanctions:** An excellent aggregator, but the full FollowTheMoney export is **2.42 GB**. For maximum data freshness, official authority, and sub-millisecond in-memory indexing, parsing the official OFAC and UN XML feeds directly is vastly superior.
 
 ### 2.8 Agentic AI Orchestration (LangGraph)
 *   **Architecture:** LangGraph provides a cyclical, state-graph execution engine (`StateGraph`).
@@ -67,5 +67,5 @@ The original project document (*"Dark Vessel Detection & Maritime Intelligence S
     *   *LLaVA-1.6 / InternVL2:* Multi-modal vision-language models. Inefficient for textual intelligence synthesis; high VRAM (>24 GB required for fine-tuning); poor remote sensing alignment.
     *   *Llama-3.1-8B-Instruct:* High performance, but requires Hugging Face gated license approval and 16 GB base storage.
     *   *Qwen2.5-7B-Instruct (Primary Recommendation):* State-of-the-art open-weight instruction model (Apache 2.0). Outstanding structured JSON output, native support for tabular/numerical reasoning, fits in ~4.5 GB in 4-bit quantization, fine-tunable via QLoRA on a single consumer GPU (8GB-16GB VRAM) or free Colab T4/A100.
-    *   *Qwen2.5-3B-Instruct (Fallback / Low Storage):* Exceptional lightweight model requiring only ~2 GB storage in 4-bit, enabling fine-tuning and inference on standard laptop GPUs.
+    *   *Qwen2.5-3B-Instruct (High-Throughput Edge Fallback):* Highly optimized compact model requiring only ~2 GB in 4-bit, enabling fast real-time inference and edge deployment.
 *   **Fine-Tuning Paradigm:** Parameter-Efficient Fine-Tuning (PEFT) with QLoRA (Rank=16, Alpha=32) using Hugging Face `TRL` (`SFTTrainer`). The model is trained on structured evidence pairs (fused features & context → structured intelligence bulletin) to produce standardized, hallucination-free reports.

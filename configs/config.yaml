@@ -2,7 +2,7 @@
 system:
   environment: "development"
   log_level: "INFO"
-  storage_budget_gb: 10.0 # Strict storage warning ceiling
+  min_disk_headroom_gb: 5.0 # Pre-flight validation threshold for asset caching
 
 paths:
   data_raw: "data/raw"
@@ -50,7 +50,7 @@ analytics:
 # LLM Configuration (Fine-Tuning & Inference)
 llm:
   primary_model_id: "Qwen/Qwen2.5-7B-Instruct"
-  fallback_model_id: "Qwen/Qwen2.5-3B-Instruct" # ultra low storage/VRAM fallback (~2GB 4-bit)
+  fallback_model_id: "Qwen/Qwen2.5-3B-Instruct" # Edge/low-latency inference tier (~2GB 4-bit)
   quantization: "4bit"
   lora_r: 16
   lora_alpha: 32

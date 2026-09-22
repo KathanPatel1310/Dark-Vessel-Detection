@@ -2,7 +2,7 @@
 
 ## 1. Architectural Philosophy & The Three Pillars
 
-The architecture has been designed from the ground up to address the professor's three core evaluation requirements while eliminating the fragility and bloat of the initial concept document.
+The platform architecture is designed from the ground up to unify cutting-edge satellite remote sensing with multi-agent cognitive reasoning, replacing legacy monolithic approaches with an agile, high-throughput pipeline.
 
 ```
                     ┌────────────────────────────────────────┐
@@ -47,7 +47,7 @@ The architecture has been designed from the ground up to address the professor's
 ## 2. The Three Core Pillars
 
 ### Pillar 1: Feature Engineering (`src/features/`)
-Feature engineering is treated as an explicit, first-class mathematical pipeline rather than hidden model internals. Features are organized into five distinct domains:
+Feature engineering is treated as an explicit, first-class mathematical pipeline rather than hidden model internals. Features are organized into five distinct analytical domains:
 1.  **SAR Morphology & Radiometry:** Length, beam, aspect ratio, radar footprint area, target-to-clutter ratio (dB), peak backscatter, and polarization variance.
 2.  **AIS Kinematics & Transmission Integrity:** Mean SOG, speed variance, turn rate, trajectory curvature, current transmission outage duration, 30-day historical outage count, and loitering hours.
 3.  **Geospatial & Sovereignty Context:** Distance to coastline, distance to EEZ boundary, binary sovereign EEZ status, proximity to recognized Ship-to-Ship (STS) transfer corridors, and local traffic density.
@@ -75,7 +75,7 @@ Implemented using **LangGraph**, the agentic system orchestrates multi-source in
 
 ### Pillar 3: Domain Fine-Tuned LLM (`training/` & `src/models/`)
 The system decouples radar signal detection from cognitive intelligence analysis:
-*   **Base Model Selection:** `Qwen/Qwen2.5-7B-Instruct` (with `Qwen2.5-3B-Instruct` as a low-storage / low-VRAM alternative).
+*   **Base Model Selection:** `Qwen/Qwen2.5-7B-Instruct` (with `Qwen2.5-3B-Instruct` as an edge-optimized, high-throughput alternative).
 *   **Fine-Tuning Role:** The LLM does NOT calculate distances or radar dimensions (which deterministic Python functions handle with 100% precision). Instead, the fine-tuned LLM specializes in:
     1.  Synthesizing disparate multi-source evidence into coherent executive narratives.
     2.  Grounding findings in precise international maritime law (SOLAS Chapter V, UNCLOS Articles 56 & 73, OFAC executive orders).
@@ -110,6 +110,6 @@ graph TD
 
 ## 4. Resilience & Error Handling Principles
 
-1.  **Strict Local Storage Isolation:** All downloads require pre-validation through `StorageGuard`.
+1.  **Automated Ingestion Validation:** All external downloads pass through `StorageGuard` pre-flight checks to guarantee system headroom and prevent partial writes.
 2.  **Zero Hallucinated Facts:** Real-time sanctions hits, distances, and coordinates are computed deterministically and passed in the context window. The LLM is penalized if it generates entities not present in the evidence payload.
 3.  **Deterministic Fallbacks:** If GPU acceleration or LLM inference fails, the system provides a template-based heuristic report using the exact same `IntelligenceReport` Pydantic schema.

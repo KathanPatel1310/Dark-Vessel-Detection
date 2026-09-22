@@ -32,7 +32,7 @@ def download_file_with_guard(url: str, target_path: str, estimated_mb: float, de
     )
     logger.info(msg)
     if not is_safe:
-        logger.error(f"Download rejected due to storage constraints: {description}")
+        logger.error(f"Download aborted: insufficient disk headroom for {description}")
         return False
 
     logger.info(f"Initiating download: {description} from {url}...")
@@ -183,7 +183,7 @@ def generate_real_arabian_sea_eez(target_dir: str = "data/raw/geospatial") -> st
 
 def download_all_real_data() -> Dict[str, str]:
     """Orchestrates download and setup of all real data assets."""
-    logger.info("--- Starting Real Data Ingestion (Storage Budget: < 35 MB) ---")
+    logger.info("--- Starting Real Data Ingestion Pipeline ---")
     results = {}
     results["ofac_sdn"] = download_ofac_sdn()
     results["un_sanctions"] = download_un_sanctions()

@@ -1,6 +1,5 @@
-"""Storage safety and estimation utility.
-Enforces the strict requirement: ALWAYS assess and report storage requirements
-before initiating external downloads or heavy processing.
+"""Pre-flight disk verification and resource headroom guard.
+Ensures filesystem headroom and I/O safety before large asset downloads or caching operations.
 """
 
 import os
@@ -8,7 +7,7 @@ import shutil
 from typing import Dict, Tuple
 
 class StorageGuard:
-    """Manages disk space verification and storage budget adherence."""
+    """Manages disk space pre-flight verification and filesystem headroom safety."""
 
     @staticmethod
     def get_disk_free_gb(path: str = ".") -> float:
