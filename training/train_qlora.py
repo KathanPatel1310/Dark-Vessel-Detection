@@ -153,7 +153,7 @@ def run_training(
         learning_rate=lr,
         logging_steps=5,
         save_strategy="epoch",
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         fp16=env["cuda_available"],
         bf16=False,
         report_to="none"
@@ -165,10 +165,8 @@ def run_training(
             model=model,
             train_dataset=raw_datasets["train"],
             eval_dataset=raw_datasets["validation"],
-            peft_config=peft_config,
-            dataset_text_field="messages",
             max_seq_length=1024,
-            tokenizer=tokenizer,
+            processing_class=tokenizer,
             args=training_args
         )
         print("\nStarting Training Run...")

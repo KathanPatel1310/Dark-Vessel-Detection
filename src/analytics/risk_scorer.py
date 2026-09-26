@@ -138,12 +138,13 @@ class MaritimeRiskScorer:
 
         for hours in forecast_horizons_hours:
             dist_km = speed_kmh * hours
-            # Dead-reckoning coordinates
+            # Spherical boundaries: clamp latitude to [-90.0, 90.0]
             dlat = (dist_km * math.cos(heading_rad)) / 111.12
-            new_lat = lat + dlat
-            cos_lat = math.cos(math.radians(lat))
-            dlon = (dist_km * math.sin(heading_rad)) / (111.12 * max(0.1, cos_lat))
-            new_lon = lon + dlon
+            new_lat = max(-90.0, min(90.0, lat + dlat))
+            cos_lat = math.cos(math.radians(new_lat))
+            dlon = (dist_km * math.sin(heading_rad)) / (111.12 * max(0.01, cos_lat))
+            # Longitude antimeridian wrapping to [-180.0, 180.0]
+            wrapped_lon = ((lon + dlon + 180.0) % 360.0) - 180.0
 
             # Expanding error cone (assumes 1.5 km/h drift + 10% speed variance)
             uncertainty_km = round(dist_km * 0.12 + 1.5 * hours, 1)
@@ -152,7 +153,7 @@ class MaritimeRiskScorer:
             waypoints.append(TrajectoryPoint(
                 projection_hours=hours,
                 projected_lat=round(new_lat, 3),
-                projected_lon=round(new_lon, 3),
+                projected_lon=round(wrapped_lon, 3),
                 uncertainty_radius_km=uncertainty_km,
                 projected_timestamp=future_time
             ))

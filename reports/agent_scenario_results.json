@@ -1,0 +1,637 @@
+[
+  {
+    "scenario_id": 1,
+    "name": "Normal correlated vessel",
+    "status": "PASSED",
+    "duration_ms": 835.21,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 6,
+    "degradation_events_count": 0,
+    "degradation_notes": [],
+    "hitl_interrupted": false,
+    "hitl_resumed": false,
+    "final_threat_tier": "LOW",
+    "final_report_id": "MAR-INTEL-20260926-ET-001",
+    "statutory_violations": [
+      "Standard Maritime Navigation Code (Compliance verification passed)"
+    ],
+    "risk_anomaly_score": 0.08,
+    "dark_vessel_classification": "CORRELATED_BENIGN",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "SUCCESS",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 2,
+    "name": "Unmatched dark vessel",
+    "status": "PASSED",
+    "duration_ms": 7.29,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "__interrupt__",
+      "HumanReviewNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 8,
+    "degradation_events_count": 1,
+    "degradation_notes": [
+      "AIS telemetry feed unavailable or zero broadcasts in spatio-temporal window: degraded to dark vessel radar-only mode."
+    ],
+    "hitl_interrupted": true,
+    "hitl_resumed": true,
+    "final_threat_tier": "MEDIUM",
+    "final_report_id": "MAR-INTEL-20260926-ET-002",
+    "statutory_violations": [
+      "SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)"
+    ],
+    "risk_anomaly_score": 0.54,
+    "dark_vessel_classification": "DELIBERATE_DARK_EVASION",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "DEGRADED",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "HumanReviewNode",
+        "status": "SUCCESS",
+        "action": "HUMAN_IN_THE_LOOP_OVERSIGHT"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 3,
+    "name": "Missing AIS",
+    "status": "PASSED",
+    "duration_ms": 7.34,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "__interrupt__",
+      "HumanReviewNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 8,
+    "degradation_events_count": 1,
+    "degradation_notes": [
+      "AIS telemetry feed unavailable or zero broadcasts in spatio-temporal window: degraded to dark vessel radar-only mode."
+    ],
+    "hitl_interrupted": true,
+    "hitl_resumed": true,
+    "final_threat_tier": "MEDIUM",
+    "final_report_id": "MAR-INTEL-20260926-ET-003",
+    "statutory_violations": [
+      "SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)"
+    ],
+    "risk_anomaly_score": 0.54,
+    "dark_vessel_classification": "DELIBERATE_DARK_EVASION",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "DEGRADED",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "HumanReviewNode",
+        "status": "SUCCESS",
+        "action": "HUMAN_IN_THE_LOOP_OVERSIGHT"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 4,
+    "name": "Sanctions match",
+    "status": "PASSED",
+    "duration_ms": 6.44,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 6,
+    "degradation_events_count": 0,
+    "degradation_notes": [],
+    "hitl_interrupted": false,
+    "hitl_resumed": false,
+    "final_threat_tier": "LOW",
+    "final_report_id": "MAR-INTEL-20260926-ET-004",
+    "statutory_violations": [
+      "Standard Maritime Navigation Code (Compliance verification passed)"
+    ],
+    "risk_anomaly_score": 0.08,
+    "dark_vessel_classification": "CORRELATED_BENIGN",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "SUCCESS",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 5,
+    "name": "Sanctions source unavailable",
+    "status": "PASSED",
+    "duration_ms": 8.52,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "__interrupt__",
+      "HumanReviewNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 8,
+    "degradation_events_count": 2,
+    "degradation_notes": [
+      "TEST_INJECT: Sanctions registry mock outage",
+      "AIS telemetry feed unavailable or zero broadcasts in spatio-temporal window: degraded to dark vessel radar-only mode."
+    ],
+    "hitl_interrupted": true,
+    "hitl_resumed": true,
+    "final_threat_tier": "MEDIUM",
+    "final_report_id": "MAR-INTEL-20260926-ET-005",
+    "statutory_violations": [
+      "SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)"
+    ],
+    "risk_anomaly_score": 0.54,
+    "dark_vessel_classification": "DELIBERATE_DARK_EVASION",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "DEGRADED",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "HumanReviewNode",
+        "status": "SUCCESS",
+        "action": "HUMAN_IN_THE_LOOP_OVERSIGHT"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 6,
+    "name": "Missing geospatial data",
+    "status": "PASSED",
+    "duration_ms": 7.42,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "__interrupt__",
+      "HumanReviewNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 8,
+    "degradation_events_count": 1,
+    "degradation_notes": [
+      "AIS telemetry feed unavailable or zero broadcasts in spatio-temporal window: degraded to dark vessel radar-only mode."
+    ],
+    "hitl_interrupted": true,
+    "hitl_resumed": true,
+    "final_threat_tier": "MEDIUM",
+    "final_report_id": "MAR-INTEL-20260926-ET-006",
+    "statutory_violations": [
+      "SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)"
+    ],
+    "risk_anomaly_score": 0.54,
+    "dark_vessel_classification": "DELIBERATE_DARK_EVASION",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "DEGRADED",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "HumanReviewNode",
+        "status": "SUCCESS",
+        "action": "HUMAN_IN_THE_LOOP_OVERSIGHT"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 7,
+    "name": "High-risk case requiring human review",
+    "status": "PASSED",
+    "duration_ms": 8.1,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "__interrupt__",
+      "HumanReviewNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 8,
+    "degradation_events_count": 1,
+    "degradation_notes": [
+      "AIS telemetry feed unavailable or zero broadcasts in spatio-temporal window: degraded to dark vessel radar-only mode."
+    ],
+    "hitl_interrupted": true,
+    "hitl_resumed": true,
+    "final_threat_tier": "MEDIUM",
+    "final_report_id": "MAR-INTEL-20260926-ET-007",
+    "statutory_violations": [
+      "SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)"
+    ],
+    "risk_anomaly_score": 0.54,
+    "dark_vessel_classification": "DELIBERATE_DARK_EVASION",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "DEGRADED",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "HumanReviewNode",
+        "status": "SUCCESS",
+        "action": "HUMAN_IN_THE_LOOP_OVERSIGHT"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 8,
+    "name": "Low-risk case bypassing human review",
+    "status": "PASSED",
+    "duration_ms": 5.5,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 6,
+    "degradation_events_count": 0,
+    "degradation_notes": [],
+    "hitl_interrupted": false,
+    "hitl_resumed": false,
+    "final_threat_tier": "LOW",
+    "final_report_id": "MAR-INTEL-20260926-ET-008",
+    "statutory_violations": [
+      "Standard Maritime Navigation Code (Compliance verification passed)"
+    ],
+    "risk_anomaly_score": 0.08,
+    "dark_vessel_classification": "CORRELATED_BENIGN",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "SUCCESS",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 9,
+    "name": "Boundary or extreme measurement input",
+    "status": "PASSED",
+    "duration_ms": 7.07,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "__interrupt__",
+      "HumanReviewNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 8,
+    "degradation_events_count": 1,
+    "degradation_notes": [
+      "AIS telemetry feed unavailable or zero broadcasts in spatio-temporal window: degraded to dark vessel radar-only mode."
+    ],
+    "hitl_interrupted": true,
+    "hitl_resumed": true,
+    "final_threat_tier": "MEDIUM",
+    "final_report_id": "MAR-INTEL-20260926-ET-009",
+    "statutory_violations": [
+      "SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)"
+    ],
+    "risk_anomaly_score": 0.54,
+    "dark_vessel_classification": "DELIBERATE_DARK_EVASION",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "DEGRADED",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "HumanReviewNode",
+        "status": "SUCCESS",
+        "action": "HUMAN_IN_THE_LOOP_OVERSIGHT"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  },
+  {
+    "scenario_id": 10,
+    "name": "Candidate AIS matches evaluation",
+    "status": "PASSED",
+    "duration_ms": 5.62,
+    "nodes_executed": [
+      "MissionController",
+      "SARAISCorrelator",
+      "FeatureEngineerNode",
+      "SanctionsScreenerNode",
+      "ForensicAssessorNode",
+      "ReportPreparerNode"
+    ],
+    "total_nodes_count": 6,
+    "degradation_events_count": 0,
+    "degradation_notes": [],
+    "hitl_interrupted": false,
+    "hitl_resumed": false,
+    "final_threat_tier": "LOW",
+    "final_report_id": "MAR-INTEL-20260926-ET-010",
+    "statutory_violations": [
+      "Standard Maritime Navigation Code (Compliance verification passed)"
+    ],
+    "risk_anomaly_score": 0.08,
+    "dark_vessel_classification": "CORRELATED_BENIGN",
+    "trace_steps": [
+      {
+        "agent": "MissionController",
+        "status": "SUCCESS",
+        "action": "INITIALIZE_MISSION_AND_GEOCONTEXT"
+      },
+      {
+        "agent": "SARAISCorrelator",
+        "status": "SUCCESS",
+        "action": "CORRELATE_SAR_AIS"
+      },
+      {
+        "agent": "FeatureEngineerNode",
+        "status": "SUCCESS",
+        "action": "EXTRACT_FIVE_DOMAIN_FEATURES"
+      },
+      {
+        "agent": "SanctionsScreenerNode",
+        "status": "SUCCESS",
+        "action": "SCREEN_OFAC_UN_SANCTIONS"
+      },
+      {
+        "agent": "ForensicAssessorNode",
+        "status": "SUCCESS",
+        "action": "EVALUATE_RISK_AND_TRAJECTORY"
+      },
+      {
+        "agent": "ReportPreparerNode",
+        "status": "SUCCESS",
+        "action": "GENERATE_FINAL_INTELLIGENCE_BULLETIN"
+      }
+    ]
+  }
+]
