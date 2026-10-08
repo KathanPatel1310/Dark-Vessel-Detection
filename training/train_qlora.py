@@ -144,8 +144,8 @@ def run_training(
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
 
-    print(f"\n[5/5] Configuring Training Arguments -> {output_dir}")
-    training_args = TrainingArguments(
+    from trl import SFTTrainer, SFTConfig
+    training_args = SFTConfig(
         output_dir=output_dir,
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
@@ -156,16 +156,15 @@ def run_training(
         eval_strategy="epoch",
         fp16=env["cuda_available"],
         bf16=False,
-        report_to="none"
+        report_to="none",
+        max_length=1024,
     )
 
     try:
-        from trl import SFTTrainer
         trainer = SFTTrainer(
             model=model,
             train_dataset=raw_datasets["train"],
             eval_dataset=raw_datasets["validation"],
-            max_seq_length=1024,
             processing_class=tokenizer,
             args=training_args
         )

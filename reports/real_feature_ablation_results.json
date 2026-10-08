@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-09-29 14:05:00",
+  "task_description": "Identification of High-Risk Tankers (Crude/Chemical Carriers) from Sentinel-1 SAR pixels & AIS",
+  "total_real_chips_analyzed": 184,
+  "subsets": {
+    "Raw Sensor Only": {
+      "feature_count": 6,
+      "roc_auc": 0.8684,
+      "pr_auc": 0.8269,
+      "f1_score": 0.7811,
+      "accuracy": 0.7989,
+      "balanced_accuracy": 0.7995,
+      "brier_score": 0.1473
+    },
+    "SAR Physics Only": {
+      "feature_count": 6,
+      "roc_auc": 0.8026,
+      "pr_auc": 0.7624,
+      "f1_score": 0.6587,
+      "accuracy": 0.6902,
+      "balanced_accuracy": 0.6883,
+      "brier_score": 0.1807
+    },
+    "Geospatial EEZ Only": {
+      "feature_count": 5,
+      "roc_auc": 0.8442,
+      "pr_auc": 0.7729,
+      "f1_score": 0.7667,
+      "accuracy": 0.7717,
+      "balanced_accuracy": 0.7786,
+      "brier_score": 0.1584
+    },
+    "Combined Multi-Modal": {
+      "feature_count": 17,
+      "roc_auc": 0.8612,
+      "pr_auc": 0.7973,
+      "f1_score": 0.7665,
+      "accuracy": 0.788,
+      "balanced_accuracy": 0.7873,
+      "brier_score": 0.15
+    }
+  },
+  "feature_importances": {
+    "raw_length_m": 0.0317,
+    "raw_width_m": 0.0272,
+    "raw_tcr_db": 0.0341,
+    "raw_lat": 0.0724,
+    "raw_lon": 0.1663,
+    "raw_sog": 0.0249,
+    "sar_aspect_ratio": 0.0357,
+    "sar_area_m2": 0.0318,
+    "sar_peak_backscatter_db": 0.0543,
+    "sar_mean_backscatter_db": 0.0322,
+    "sar_target_clutter_ratio_db": 0.0222,
+    "sar_confidence": 0.0685,
+    "geo_distance_to_shore_km": 0.109,
+    "geo_inside_eez": 0.0,
+    "geo_distance_to_eez_km": 0.0921,
+    "geo_distance_to_sts_km": 0.0907,
+    "geo_distance_to_port_km": 0.1067
+  }
+}

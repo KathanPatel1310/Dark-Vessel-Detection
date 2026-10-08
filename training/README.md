@@ -99,3 +99,20 @@ python training/train_qlora.py --no_4bit --dry_run
 ```bash
 python training/evaluate.py --reference_baseline
 ```
+
+---
+
+## 6. Real Satellite Dataset Reproduction
+
+In addition to synthetic bootstrap sets, real multi-modal satellite training datasets are reproduced directly from cached Sentinel-1 SAR chips and real AIS traffic:
+
+```bash
+# 1. Download/verify Sentinel-1 SAR chips and AIS traffic
+python src/data/download_real_data.py
+
+# 2. Build real multi-modal fine-tuning datasets
+python training/build_real_dataset.py --output_dir training/data
+```
+
+This generates `real_maritime_train.jsonl` (184 real SAR-AIS incidents) and `real_maritime_validation.jsonl` locally without committing heavy data files to Git.
+
