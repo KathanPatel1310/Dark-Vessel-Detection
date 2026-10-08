@@ -15,8 +15,9 @@ import json
 import os
 import re
 import sys
-from typing import Dict, List, Any, Optional
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from typing import Dict, List, Any, Optional
 from src.schemas.intelligence import IntelligenceReport
 
 

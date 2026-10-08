@@ -35,6 +35,7 @@ env/
 *.key
 
 # Data directories (keep directory structure with .gitkeep)
+data/raw/
 data/raw/*
 !data/raw/.gitkeep
 data/interim/*
@@ -43,9 +44,13 @@ data/processed/*
 !data/processed/.gitkeep
 data/external/*
 !data/external/.gitkeep
-# (Keep fixtures tracked if they are small synthetic JSON/CSV files)
+training/data/real_maritime_*.jsonl
 
-# Model weights & large binaries
+# Temporary outputs & generated artifacts
+outputs/*
+!outputs/.gitkeep
+
+# Model weights & large binaries (Strictly excluded from Git)
 *.pt
 *.pth
 *.onnx
@@ -53,8 +58,17 @@ data/external/*
 *.bin
 *.gguf
 checkpoints/
+checkpoint-*/
 runs/
 models_cache/
+.pytest_cache/
+models/*
+!models/.gitkeep
+!models/README.md
+
+# Frontend app (work-in-progress, excluded from PR)
+app/*
+!app/.gitkeep
 
 # Jupyter Notebooks
 .ipynb_checkpoints
