@@ -107,6 +107,19 @@ def check_faithfulness(text: str, facts: Dict[str, Any], catalog: List[Dict[str,
         v = float(tok)
         if round(v, 3) not in allowed and round(v, 2) not in allowed and round(v, 1) not in allowed and round(v, 0) not in allowed:
             issues.append(f"number {tok} not found in evidence")
+    # Categorical claims must match the evidence exactly: threat tier, classification label, jurisdiction.
+    tiers = r"(LOW|MEDIUM|HIGH|SEVERE|CRITICAL)"
+    for m in re.finditer(tiers + r"\s*(?:threat\s*)?tier|tier\s*[:=]?\s*" + tiers + r"|\(" + tiers + r"\s*threat\)", text, flags=re.I):
+        said = next(g for g in m.groups() if g).upper()
+        if facts.get("threat_tier") and said != str(facts["threat_tier"]).upper():
+            issues.append(f"threat tier '{said}' contradicts evidence ({facts['threat_tier']})")
+    known = ("CORRELATED_BENIGN", "SMALL_CRAFT_EXEMPT", "AIS_SHADOW_ZONE", "SPOOFING_ANOMALY", "DELIBERATE_DARK_EVASION")
+    for label in known:
+        if label in text.upper() and facts.get("classification") and label != facts["classification"]:
+            issues.append(f"classification '{label}' contradicts evidence ({facts['classification']})")
+    jm = re.search(r"jurisdiction\s*[:=]\s*([A-Za-z ]+?)(?:[.;,\n]|$)", text, flags=re.I)
+    if jm and facts.get("jurisdiction") and jm.group(1).strip().lower() != str(facts["jurisdiction"]).lower():
+        issues.append(f"jurisdiction '{jm.group(1).strip()}' contradicts evidence ({facts['jurisdiction']})")
     cat_text = " ".join(f"{c['title']} {c['statute']}" for c in catalog).lower() + " " + " ".join(facts.get("statutes", [])).lower()
     for m in re.finditer(r"(?:article|art\.?|regulation|reg\.?)\s*(\d+)", text, flags=re.I):
         if m.group(1) not in re.findall(r"\d+", cat_text):
@@ -187,9 +200,12 @@ def llm_narrative(facts: Dict[str, Any], catalog: List[Dict[str, Any]], max_new_
         tok, model = _load_llm()
         import torch
         msgs = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": _telemetry_prompt(facts)}]
-        ids = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt").to(model.device)
+        enc = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt", return_dict=True)
+        ids = enc["input_ids"].to(model.device)
+        attn = enc["attention_mask"].to(model.device)
         with torch.no_grad():
-            out = model.generate(ids, max_new_tokens=max_new_tokens, do_sample=False)
+            out = model.generate(input_ids=ids, attention_mask=attn, max_new_tokens=max_new_tokens, do_sample=False,
+                                 repetition_penalty=1.0, eos_token_id=[151645, 151643], pad_token_id=151643)
         raw = tok.decode(out[0][ids.shape[1]:], skip_special_tokens=True).strip()
     cleaned = re.sub(r"^```(?:json)?|```$", "", raw.strip(), flags=re.M).strip()
     try:

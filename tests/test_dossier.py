@@ -93,3 +93,34 @@ def test_llm_request_falls_back_to_verified_template_when_model_unavailable(monk
              "classification": "AIS_SHADOW_ZONE", "dark_vessel_probability": 0.5, "anomaly_score": 0.4, "threat_tier": "MEDIUM", "degradation_notes": [], "statutes": []}
     out = nv.build_narrative(facts, [], None, use_llm=True)
     assert out["generated_by"] == "RULE_BASED" and any("AI narrative skipped" in i for i in out["issues"])
+
+
+def _gpu_llm_ready():
+    try:
+        import torch
+        return nv.llm_status()["available"] and torch.cuda.is_available()
+    except Exception:
+        return False
+
+
+@pytest.mark.skipif(not _gpu_llm_ready(), reason="fine-tuned Qwen files or a CUDA GPU are not available")
+def test_llm_summary_is_verified_against_evidence_when_model_is_available():
+    from src.api.server import CASE_CONTEXTS
+    from src.reporting.dossier import build_facts
+    _investigate_synthetic()
+    facts = build_facts(next(iter(CASE_CONTEXTS.values())))
+    out = nv.llm_narrative(facts, get_meta()["citation_catalog"])
+    assert out["generated_by"] == "LLM_VERIFIED" and out["paragraphs"]
+    ok, issues = nv.check_faithfulness(" ".join(out["paragraphs"]), facts, get_meta()["citation_catalog"])
+    assert ok, issues
+
+
+def test_faithfulness_check_rejects_wrong_tier_classification_and_jurisdiction():
+    facts = {"threat_tier": "SEVERE", "classification": "CORRELATED_BENIGN", "jurisdiction": "Oman", "length_m": 274.0, "statutes": []}
+    cat = get_meta()["citation_catalog"]
+    ok, _ = nv.check_faithfulness("Ship length 274.0m. Jurisdiction: Oman. SEVERE tier. CORRELATED_BENIGN.", facts, cat)
+    assert ok
+    bad, issues = nv.check_faithfulness("Ship length 274.0m. Anomaly (CRITICAL Tier). Classified DELIBERATE_DARK_EVASION. Jurisdiction: Iran.", facts, cat)
+    assert not bad
+    joined = " ".join(issues)
+    assert "CRITICAL" in joined and "DELIBERATE_DARK_EVASION" in joined and "Iran" in joined

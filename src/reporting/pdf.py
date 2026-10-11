@@ -184,6 +184,10 @@ def render(d: Dict[str, Any], narrative: Dict[str, Any], figs: Dict[str, Optiona
     el.append(P(M(f"<i>{esc(narrative.get('label', ''))}</i>"), "small"))
     for p in narrative.get("paragraphs", []):
         el.append(P(p))
+    if narrative.get("rule_based_paragraphs"):
+        el.append(Paragraph("Evidence detail (rule-generated from the stored evidence)", S["h2"]))
+        for p in narrative["rule_based_paragraphs"]:
+            el.append(P(p))
     for issue in narrative.get("issues", []):
         el.append(P(f"Note: {issue}", "small"))
     el.append(Paragraph("Key findings", S["h2"]))
