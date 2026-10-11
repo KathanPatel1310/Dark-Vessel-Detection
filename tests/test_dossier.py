@@ -124,3 +124,25 @@ def test_faithfulness_check_rejects_wrong_tier_classification_and_jurisdiction()
     assert not bad
     joined = " ".join(issues)
     assert "CRITICAL" in joined and "DELIBERATE_DARK_EVASION" in joined and "Iran" in joined
+
+
+def test_score_breakdown_always_matches_the_production_scorer():
+    """The report's derivation table must never drift from MaritimeRiskScorer."""
+    from src.api.server import CASE_CONTEXTS
+    from src.reporting.brief import score_breakdown
+    for sid in ("SCN-DARK-001", "SCN-SANC-002", "SCN-NORM-003", "SCN-EXEM-004", "SCN-DEGR-005"):
+        sc = client.get(f"/api/scenarios/{sid}").json()
+        client.post("/api/investigate", json={"sar_detection": sc["sar_detection"], "matched_ais": sc["ais_observation"], "historical_gaps": sc.get("historical_gaps", []),
+                                              "simulate_ais_offline": sc["scenario_type"] == "DEGRADED_EVIDENCE", "scenario_id": sid})
+        ctx = list(CASE_CONTEXTS.values())[-1]
+        assert score_breakdown(ctx)["final"] == ctx["risk_assessment"]["dark_vessel_probability"], sid
+
+
+def test_report_discloses_evidentiary_status_and_leaves_certification_blank():
+    from src.reporting.pdf import evidentiary_status
+    test_ctx = {"request": {"scenario_id": "SCN-DARK-001"}}
+    assert "not an observation of a real event" in evidentiary_status(test_ctx)["label"]
+    withheld = {"request": {"chip_id": "x", "simulate_ais_offline": True}}
+    assert "withheld" in evidentiary_status(withheld)["text"]
+    observed = {"request": {"chip_id": "x"}}
+    assert evidentiary_status(observed)["label"].startswith("Observed radar data and observed AIS")

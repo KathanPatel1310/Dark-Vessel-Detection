@@ -23,13 +23,13 @@ DOMAIN_MODELS = {"sar": SARFeatures, "ais": AISFeatures, "geospatial": Geospatia
 # Where each engineered feature comes from; formulas are documented in docs/ and the feature modules.
 FORMULAS: Dict[str, str] = {
     "aspect_ratio": "length_m / width_m",
-    "compactness": "perimeter² / (4π · area)",
-    "target_to_clutter_ratio_db": "mean_target_dB − mean_clutter_dB",
+    "compactness": "perimeter^2 / (4 * pi * area)",
+    "target_to_clutter_ratio_db": "mean target dB - mean clutter dB",
     "spatial_discrepancy_km": "haversine(SAR position, AIS position)",
-    "temporal_difference_minutes": "|t_SAR − t_AIS| in minutes",
+    "temporal_difference_minutes": "|t_SAR - t_AIS| in minutes",
     "dimension_mismatch_ratio": "|L_SAR − L_AIS| / L_AIS",
-    "heading_discrepancy_deg": "min(|θ_SAR − θ_COG|, 360 − |θ_SAR − θ_COG|)",
-    "heading_variance": "1 − |Σe^{iθ}| / N (circular variance)",
+    "heading_discrepancy_deg": "min(|SAR heading - COG|, 360 - |SAR heading - COG|)",
+    "heading_variance": "1 - |sum of unit heading vectors| / N (circular variance)",
     "trajectory_curvature": "path length / endpoint displacement",
     "candidate_identity_score": "weighted spatial + temporal + dimension agreement",
 }
@@ -167,7 +167,7 @@ def alternative_hypotheses(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
     })
     out.append({
         "name": "AIS spoofing or position error (vessel is transmitting, but wrongly)",
-        "for": ([f"Nearest AIS report is {fusion.get('spatial_discrepancy_km', 0):.1f} km away."] if fusion else []) or ["No candidate AIS report to compare."],
+        "for": ([f"Nearest AIS report is {fusion.get('spatial_discrepancy_km', 0):.1f} km away."] if (fusion and ctx.get("ais_used")) else []) or ["No candidate AIS report to compare."],
         "against": ["Spoofing cannot be distinguished from absence using one SAR snapshot."],
         "settle": "Multi-pass SAR + AIS track continuity analysis.",
         "weight": "LOW",
@@ -197,7 +197,7 @@ def limitations(ctx: Dict[str, Any]) -> List[str]:
     items = [
         "A radar detection alone cannot show that a vessel is deliberately hiding; the output is a probability, not a finding of fact.",
         "Length, beam and heading are estimated from detector boxes at 10 m pixel spacing and carry material uncertainty.",
-        "The risk score is a rule-based heuristic, not a calibrated statistical model; thresholds are documented in §9.",
+        "The risk score is a rule-based heuristic, not a calibrated statistical model; thresholds are documented in Section 4 of this report.",
         "Historical features (flag/name changes, route anomaly, past STS) are heuristic placeholders unless an AIS history was supplied.",
         "Single-snapshot assessment: no multi-pass confirmation, wake analysis or Doppler speed estimate.",
     ]

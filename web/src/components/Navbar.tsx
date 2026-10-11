@@ -22,8 +22,6 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: 'Reference',
     items: [
-      { to: '/data', label: 'Data and provenance', hint: 'What is real, derived or synthetic' },
-      { to: '/results', label: 'Results', hint: 'Measured model and workflow results' },
       { to: '/methodology', label: 'Methodology', hint: 'Provenance tags and legal basis' },
       { to: '/audit', label: 'Audit ledger', hint: 'Hash-chained record of actions' },
     ],

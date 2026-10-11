@@ -193,7 +193,7 @@ export const Operations = ({ initialScenarioId = 'SCN-DARK-001' }: OperationsPro
     }
   };
 
-  // SAR schematic (only for synthetic scenarios, which have no raw chip)
+  // SAR schematic (only for test scenarios, which have no raw chip)
   useEffect(() => {
     const canvas = chipRef.current;
     if (!canvas || !selected || tab !== 'sar' || selected.chip_id) return;
@@ -306,7 +306,7 @@ export const Operations = ({ initialScenarioId = 'SCN-DARK-001' }: OperationsPro
           <section>
             <h2 className="mb-2 text-sm font-semibold text-white">1. Choose a case</h2>
             <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-[#0C1424] p-1 text-xs" role="tablist">
-              {([['real', `Real Sentinel-1 (${realCases.length})`], ['synthetic', `Benchmarks (${scenarios.length})`]] as const).map(([k, label]) => (
+              {([['real', `Real Sentinel-1 (${realCases.length})`], ['synthetic', `Test scenarios (${scenarios.length})`]] as const).map(([k, label]) => (
                 <button
                   key={k}
                   role="tab"
@@ -362,7 +362,7 @@ export const Operations = ({ initialScenarioId = 'SCN-DARK-001' }: OperationsPro
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-xs leading-relaxed text-slate-400">Hand-written test fixtures that exercise each decision path. Synthetic data.</p>
+                <p className="text-xs leading-relaxed text-slate-400">Constructed inputs that exercise each decision path of the software. They are not observations of real events.</p>
                 {scenarios.map((s) => (
                   <button
                     key={s.scenario_id}
@@ -453,7 +453,7 @@ export const Operations = ({ initialScenarioId = 'SCN-DARK-001' }: OperationsPro
                 ) : (
                   <>
                     <canvas ref={chipRef} width={480} height={340} className="max-w-full rounded-xl border border-cyan-500/30" />
-                    <p className="max-w-md text-center text-xs text-slate-500">Synthetic scenario — schematic from the stated dimensions, not radar imagery.</p>
+                    <p className="max-w-md text-center text-xs text-slate-500">Test scenario — schematic from the stated dimensions, not radar imagery.</p>
                   </>
                 )}
               </div>

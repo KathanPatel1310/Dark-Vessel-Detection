@@ -69,7 +69,7 @@ export const Cases = () => {
             <select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="rounded-md border border-white/10 bg-[#0C1424] px-2 py-1.5 text-slate-100">
               <option value="ALL">All</option>
               <option value="REAL">Real chips</option>
-              <option value="SYNTHETIC">Synthetic scenarios</option>
+              <option value="SYNTHETIC">Test scenarios</option>
             </select>
           </label>
           <span className="ml-auto text-slate-500">{shown.length} of {cases?.length ?? 0}</span>

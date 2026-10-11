@@ -49,7 +49,7 @@ export const Methodology = () => {
                 <ProvenanceChip provenance="SYNTHETIC" />
               </div>
               <p className="text-xs text-slate-400">
-                Procedurally generated radar chip scenarios and simulated AIS gap tracks used to benchmark pipeline performance.
+                Constructed test scenarios used to exercise each decision path of the pipeline. They are not observations of real events.
               </p>
             </div>
 

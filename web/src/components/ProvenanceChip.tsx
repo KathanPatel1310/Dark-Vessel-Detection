@@ -30,10 +30,10 @@ export const ProvenanceChip = ({
         };
       case 'SYNTHETIC':
         return {
-          label: 'SYNTHETIC',
+          label: 'TEST DATA',
           icon: Sparkles,
           bg: 'bg-purple-950/40 text-purple-400 border-purple-500/30 border-dashed',
-          desc: 'Procedurally generated simulation fixture for benchmark verification',
+          desc: 'Constructed test input, not an observation of a real event',
         };
       case 'HEURISTIC':
         return {
