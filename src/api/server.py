@@ -903,8 +903,31 @@ def export_report(report_id: str, format: str = Query("json")):
 # Mount Static Frontend
 # ---------------------------------------------------------------------------
 
+web_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist"))
 app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "app"))
-if os.path.exists(app_dir):
+
+if os.path.exists(web_dist):
+    if os.path.exists(os.path.join(web_dist, "assets")):
+        app.mount("/assets", StaticFiles(directory=os.path.join(web_dist, "assets")), name="assets")
+    if os.path.exists(os.path.join(web_dist, "frames")):
+        app.mount("/frames", StaticFiles(directory=os.path.join(web_dist, "frames")), name="frames")
+
+    @app.get("/")
+    def serve_web_index():
+        return FileResponse(os.path.join(web_dist, "index.html"))
+
+    @app.get("/ops")
+    @app.get("/operations")
+    def serve_web_ops():
+        return FileResponse(os.path.join(web_dist, "index.html"))
+
+    @app.get("/audit")
+    @app.get("/methodology")
+    @app.get("/dev")
+    def serve_web_routes():
+        return FileResponse(os.path.join(web_dist, "index.html"))
+
+elif os.path.exists(app_dir):
     app.mount("/static", StaticFiles(directory=app_dir), name="static")
 
     @app.get("/")
