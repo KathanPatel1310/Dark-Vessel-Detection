@@ -158,6 +158,7 @@ class InvestigationRequest(BaseModel):
     chip_id: Optional[str] = None
     scenario_id: Optional[str] = None
     ground_truth_ais: Optional[AISObservation] = None
+    ground_truth: Optional[Dict[str, Any]] = None
     provenance: Optional[Dict[str, Any]] = None
     all_detections: Optional[List[Dict[str, Any]]] = None
 
@@ -826,6 +827,17 @@ def submit_hitl_decision(req: HITLSubmitRequest):
         operator="OPERATOR_HUMAN"
     )
 
+    case_ctx = CASE_CONTEXTS.get(session.get("mission_id", ""))
+    if case_ctx is not None:
+        case_ctx.setdefault("hitl_decisions", []).append({
+            "timestamp": audit_entry["timestamp"], "disposition": req.analyst_disposition, "notes": req.audit_notes,
+            "overridden_classification": req.override_classification})
+        try:
+            with open(os.path.join(CASES_DIR, f"{case_ctx['mission_id']}.json"), "w", encoding="utf-8") as fh:
+                json.dump(case_ctx, fh, default=str)
+        except OSError:
+            pass
+
     return {
         "status": "SUCCESS",
         "session_id": req.session_id,
@@ -837,7 +849,7 @@ def submit_hitl_decision(req: HITLSubmitRequest):
 
 @app.get("/api/report/{report_id}/export")
 @app.get("/report/{report_id}/export")
-def export_report(report_id: str, format: str = Query("json")):
+def export_report(report_id: str, format: str = Query("json"), llm: bool = Query(False)):
     """Exports structured maritime intelligence reports in JSON, GeoJSON, or print-ready format."""
     rep = GENERATED_REPORTS.get(report_id)
     if not rep:
@@ -872,7 +884,23 @@ def export_report(report_id: str, format: str = Query("json")):
             "features": features
         }
 
-    if format.lower() in ["pdf", "html"]:
+    if format.lower() == "pdf":
+        ctx = CASE_CONTEXTS.get(report_id) or CASE_CONTEXTS.get(rep.get("mission_id", "")) or CASE_CONTEXTS.get(rep.get("report_id", ""))
+        if ctx is None:
+            raise HTTPException(status_code=404, detail="Full investigation context for this report is unavailable; re-run the investigation.")
+        from src.reporting.service import generate_pdf
+        try:
+            pdf_bytes, info = generate_pdf(ctx, AUDIT_LEDGER, get_meta()["citation_catalog"], get_data_inventory(), use_llm=llm)
+        except Exception as e:
+            logger.exception("Dossier generation failed")
+            raise HTTPException(status_code=500, detail=f"Report generation failed: {e}")
+        append_to_audit_ledger("DOSSIER_EXPORTED", {"mission_id": ctx.get("mission_id"), "report_id": rep.get("report_id"), "narrative": info["narrative"], "evidence_sha256": info["evidence_sha256"]})
+        fname = f"DVD-MDA_{rep.get('report_id', report_id)}.pdf"
+        return Response(content=pdf_bytes, media_type="application/pdf", headers={
+            "Content-Disposition": f'attachment; filename="{fname}"', "X-Narrative": info["narrative"], "X-Evidence-SHA256": info["evidence_sha256"],
+            "Access-Control-Expose-Headers": "Content-Disposition, X-Narrative, X-Evidence-SHA256"})
+
+    if format.lower() == "html":
         html_content = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -1063,7 +1091,9 @@ def get_data_inventory():
         assets.append({
             "id": "llm", "name": "Qwen 2.5 maritime model (merged LoRA)", "provenance": "REAL", "size_bytes": os.path.getsize(llm),
             "path": "models/maritime_qwen_merged", "source": "Fine-tuned on rule-generated report examples",
-            "details": "Used only to draft report prose; numbers and citations come from code.",
+            "details": ("Loadable: " if __import__("src.reporting.narrative", fromlist=["x"]).llm_status()["available"] else "NOT loadable (missing: "
+                        + ", ".join(__import__("src.reporting.narrative", fromlist=["x"]).llm_status()["missing"]) + "). ")
+                       + "Used only to draft report prose; numbers and citations come from code.",
         })
 
     tally: Dict[str, int] = {}

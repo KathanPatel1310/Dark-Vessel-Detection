@@ -9,6 +9,8 @@ Constructs the multi-agent decision graph connecting:
 7. ReportPreparerNode (final structured intelligence synthesis)
 """
 
+import time
+from functools import wraps
 from typing import Any, Dict, Optional
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -23,6 +25,25 @@ from src.agents.nodes import (
     human_review_node,
     report_preparer_node,
 )
+
+
+def _timed(fn):
+    """Records the measured wall-clock latency (ms) on the trace entry the node just appended."""
+    @wraps(fn)
+    def wrapper(state):
+        start = time.perf_counter()
+        out = fn(state)
+        elapsed_ms = round((time.perf_counter() - start) * 1000.0, 2)
+        trace = out.get("execution_trace") if isinstance(out, dict) else None
+        if trace:
+            last = trace[-1]
+            if getattr(last, "latency_ms", None) is None:
+                try:
+                    last.latency_ms = elapsed_ms
+                except Exception:
+                    pass
+        return out
+    return wrapper
 
 
 def route_after_forensic_assessment(state: MaritimeAgentState) -> str:
@@ -59,13 +80,13 @@ def build_maritime_intelligence_graph(
     builder = StateGraph(MaritimeAgentState)
 
     # 1. Add all 6 primary nodes + HITL review node
-    builder.add_node("MissionController", mission_controller_node)
-    builder.add_node("SARAISCorrelator", sar_ais_correlator_node)
-    builder.add_node("FeatureEngineerNode", feature_engineer_node)
-    builder.add_node("SanctionsScreenerNode", sanctions_screener_node)
-    builder.add_node("ForensicAssessorNode", forensic_assessor_node)
-    builder.add_node("HumanReviewNode", human_review_node)
-    builder.add_node("ReportPreparerNode", report_preparer_node)
+    builder.add_node("MissionController", _timed(mission_controller_node))
+    builder.add_node("SARAISCorrelator", _timed(sar_ais_correlator_node))
+    builder.add_node("FeatureEngineerNode", _timed(feature_engineer_node))
+    builder.add_node("SanctionsScreenerNode", _timed(sanctions_screener_node))
+    builder.add_node("ForensicAssessorNode", _timed(forensic_assessor_node))
+    builder.add_node("HumanReviewNode", _timed(human_review_node))
+    builder.add_node("ReportPreparerNode", _timed(report_preparer_node))
 
     # 2. Add deterministic processing edges
     builder.add_edge(START, "MissionController")

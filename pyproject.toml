@@ -41,6 +41,10 @@ cv = [
     "opencv-python-headless>=4.8.0",
     "ultralytics>=8.1.0",
 ]
+report = [
+    "reportlab>=4.0.0",
+    "matplotlib>=3.7.0",
+]
 training = [
     "torch>=2.2.0",
     "transformers>=4.40.0",
