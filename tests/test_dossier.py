@@ -28,7 +28,7 @@ def test_pdf_export_for_synthetic_scenario_is_a_real_multipage_pdf():
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/pdf"
     assert r.content.startswith(b"%PDF")
-    assert r.content.count(b"/Type /Page\n") + r.content.count(b"/Type /Page ") >= 12
+    assert r.content.count(b"/Type /Page\n") + r.content.count(b"/Type /Page ") >= 8
     assert r.headers["x-narrative"] == "RULE_BASED"
     assert "attachment" in r.headers["content-disposition"]
 
@@ -124,3 +124,23 @@ def test_faithfulness_check_rejects_wrong_tier_classification_and_jurisdiction()
     assert not bad
     joined = " ".join(issues)
     assert "CRITICAL" in joined and "DELIBERATE_DARK_EVASION" in joined and "Iran" in joined
+
+
+def test_score_breakdown_always_matches_the_production_scorer():
+    """The report's rule-by-rule bars must never drift from MaritimeRiskScorer."""
+    from src.api.server import CASE_CONTEXTS
+    from src.reporting.brief import score_breakdown
+    for sid in ("SCN-DARK-001", "SCN-SANC-002", "SCN-NORM-003", "SCN-EXEM-004", "SCN-DEGR-005"):
+        sc = client.get(f"/api/scenarios/{sid}").json()
+        client.post("/api/investigate", json={"sar_detection": sc["sar_detection"], "matched_ais": sc["ais_observation"], "historical_gaps": sc.get("historical_gaps", []),
+                                              "simulate_ais_offline": sc["scenario_type"] == "DEGRADED_EVIDENCE", "scenario_id": sid})
+        ctx = list(CASE_CONTEXTS.values())[-1]
+        assert score_breakdown(ctx)["final"] == ctx["risk_assessment"]["dark_vessel_probability"], sid
+
+
+def test_pdf_fonts_are_bundled_and_embedded():
+    from src.reporting import pdf
+    assert pdf._OK, "bundled fonts missing; run scripts/build_report_fonts.py"
+    body = _investigate_synthetic()
+    r = client.get(f"/api/report/{body['final_report']['report_id']}/export", params={"format": "pdf"})
+    assert b"InstrumentSerif" in r.content and b"Inter" in r.content and b"JetBrainsMono" in r.content

@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.reporting import brief
 from src.reporting import figures as fg
 from src.reporting import narrative as nv
 from src.reporting.dossier import build_dossier
@@ -43,6 +44,7 @@ def build_figures(d: Dict[str, Any]) -> Dict[str, Optional[bytes]]:
     safe("schematic", lambda: fg.schematic_hull(det) if not req.get("chip_id") else None)
     safe("map", lambda: fg.tactical_map(det, ctx.get("ais_used"), ctx.get("geo_context") or {}, (ctx.get("forecast") or {}).get("extrapolated_waypoints") or [], req.get("historical_gaps") or []))
     safe("gaps", lambda: fg.ais_gap_chart(req.get("historical_gaps") or []))
+    safe("score", lambda: fg.score_bars(d["breakdown"]["rows"]))
     safe("cf", lambda: fg.counterfactual_bars(d["counterfactuals"]))
     safe("sens", lambda: fg.sensitivity_curve(d["sensitivity_curve"], d["baseline_point"]) if d["baseline_point"] else None)
     safe("flow", lambda: fg.workflow_diagram(ctx.get("execution_trace") or []))
@@ -53,6 +55,9 @@ def build_figures(d: Dict[str, Any]) -> Dict[str, Optional[bytes]]:
 def generate_pdf(ctx: Dict[str, Any], ledger: List[Dict[str, Any]], catalog: List[Dict[str, Any]], inventory: Dict[str, Any], use_llm: bool = False) -> Tuple[bytes, Dict[str, Any]]:
     """Returns (pdf_bytes, info) where info reports which narrative producer was used."""
     d = build_dossier(ctx, ledger, catalog, inventory)
+    d["breakdown"] = brief.score_breakdown(ctx)
+    d["verdict"] = brief.verdict(ctx)
+    d["checks"] = brief.checks(ctx, d["ledger_check"])
     narrative = nv.build_narrative(d["facts"], catalog, ctx.get("hitl_decisions"), use_llm)
     figs = build_figures(d)
     pdf = render(d, narrative, figs)

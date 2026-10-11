@@ -1,33 +1,49 @@
-"""Matplotlib figures for the PDF dossier. Every function returns PNG bytes (or None when the
-underlying data does not exist) — figures are never fabricated to fill a page."""
+"""Figures for the dossier, drawn in the report's editorial style: white page, navy ink, hairline
+grids, one accent colour. Every function returns PNG bytes, or None when the underlying data does not
+exist — figures are never fabricated to fill a page."""
 
 import io
 import json
 import math
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle  # noqa: E402
+from matplotlib import font_manager  # noqa: E402
+from matplotlib.patches import Ellipse, Rectangle  # noqa: E402
 
-NAVY = "#0B1F3A"
-CYAN = "#0891B2"
-AMBER = "#D97706"
-RED = "#DC2626"
-GREEN = "#16A34A"
-GREY = "#64748B"
-PURPLE = "#7C3AED"
+INK = "#0F1B2D"
+NAVY = "#1F3D63"
+ACCENT = "#D9431E"
+MUTED = "#6B7785"
+GRID = "#DDE3E9"
+LAND = "#EAF0F4"
+FAINT = "#F3F6F8"
+
+_FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+for _f in ("Inter-Regular.ttf", "Inter-Medium.ttf", "JetBrainsMono-Regular.ttf"):
+    _p = os.path.join(_FONT_DIR, _f)
+    if os.path.exists(_p):
+        font_manager.fontManager.addfont(_p)
+
+plt.rcParams.update({
+    "font.family": ["Inter", "DejaVu Sans"], "font.size": 7.5, "text.color": INK, "axes.labelcolor": MUTED,
+    "axes.edgecolor": GRID, "axes.linewidth": 0.6, "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelsize": 6.5,
+    "ytick.labelsize": 6.5, "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "grid.color": GRID,
+    "grid.linewidth": 0.5, "axes.axisbelow": True, "legend.frameon": False, "legend.fontsize": 6.8,
+    "savefig.facecolor": "white", "figure.facecolor": "white",
+})
 
 _EEZ_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "raw", "geospatial", "arabian_sea_eez.geojson"))
 
 
 def _png(fig: "plt.Figure") -> bytes:
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=170, bbox_inches="tight", facecolor="white")
+    fig.savefig(buf, format="png", dpi=200, bbox_inches="tight", pad_inches=0.04)
     plt.close(fig)
     return buf.getvalue()
 
@@ -42,25 +58,31 @@ def _stretch(a: np.ndarray) -> np.ndarray:
     return np.clip((db - lo) / max(hi - lo, 1e-6), 0, 1)
 
 
+def _km_to_deg(km: float, lat: float) -> Tuple[float, float]:
+    return km / 111.32, km / (111.32 * max(math.cos(math.radians(lat)), 0.05))
+
+
+# ----------------------------------------------------------------------------------------------
 def chip_panels(chip: Any, detections: List[Dict[str, Any]], primary_id: Optional[str]) -> Optional[bytes]:
-    """VV / VH / composite panels with detector boxes and the 15-px clutter annulus."""
     if chip is None:
         return None
-    fig, axes = plt.subplots(1, 3, figsize=(10.5, 3.7))
-    panels = [("VV (dB stretch)", _stretch(chip.chip_vv), "gray"), ("VH (dB stretch)", _stretch(chip.chip_vh), "gray"), ("Dual-pol composite", chip.to_rgb_composite() / 255.0, None)]
+    fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.55))
+    panels = [("VV", _stretch(chip.chip_vv), "gray"), ("VH", _stretch(chip.chip_vh), "gray"), ("Dual-pol composite", chip.to_rgb_composite() / 255.0, None)]
     for ax, (title, img, cmap) in zip(axes, panels):
         ax.imshow(img, cmap=cmap, interpolation="nearest")
-        ax.set_title(title, fontsize=9, color=NAVY)
-        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title(title, fontsize=7, color=MUTED, loc="left", pad=3)
+        ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+        for s in ax.spines.values():
+            s.set_visible(True); s.set_color(GRID)
         for d in detections:
             if not d.get("bbox_pixel"):
                 continue
             x1, y1, x2, y2 = d["bbox_pixel"]
             is_p = d.get("detection_id") == primary_id
-            ax.add_patch(Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False, ec=("#00E5FF" if is_p else "#F59E0B"), lw=1.2))
+            ax.add_patch(Rectangle((x1 - 3, y1 - 3), x2 - x1 + 6, y2 - y1 + 6, fill=False, ec=(ACCENT if is_p else "#FFFFFF"), lw=(1.3 if is_p else 0.7)))
             if is_p:
-                ax.add_patch(Rectangle((x1 - 15, y1 - 15), x2 - x1 + 30, y2 - y1 + 30, fill=False, ec="#F59E0B", lw=0.8, ls="--"))
-    fig.suptitle("Real Sentinel-1 chip · cyan = target · amber = other detections / clutter guard", fontsize=8, color=GREY, y=0.02)
+                ax.add_patch(Rectangle((x1 - 15, y1 - 15), x2 - x1 + 30, y2 - y1 + 30, fill=False, ec=ACCENT, lw=0.6, ls=(0, (3, 2))))
+    fig.tight_layout(w_pad=0.6)
     return _png(fig)
 
 
@@ -75,87 +97,105 @@ def clutter_histogram(chip: Any, primary: Dict[str, Any]) -> Optional[bytes]:
     cmask &= ~tmask
     if not tmask.any() or not cmask.any():
         return None
-    fig, ax = plt.subplots(figsize=(5.2, 2.8))
-    ax.hist(vv[cmask], bins=40, alpha=0.65, color=AMBER, label=f"Clutter annulus (mean {vv[cmask].mean():.1f} dB)", density=True)
-    ax.hist(vv[tmask], bins=40, alpha=0.65, color=CYAN, label=f"Target (mean {vv[tmask].mean():.1f} dB)", density=True)
-    ax.set_xlabel("VV backscatter (dB, uncalibrated)", fontsize=8); ax.set_ylabel("Density", fontsize=8)
-    ax.tick_params(labelsize=7); ax.legend(fontsize=7, frameon=False)
-    ax.set_title("Target vs sea-clutter backscatter", fontsize=9, color=NAVY)
+    fig, ax = plt.subplots(figsize=(3.4, 2.0))
+    ax.hist(vv[cmask], bins=36, color="#B9C3CD", label=f"Sea clutter, mean {vv[cmask].mean():.1f} dB", density=True)
+    ax.hist(vv[tmask], bins=36, color=ACCENT, alpha=0.85, label=f"Target, mean {vv[tmask].mean():.1f} dB", density=True)
+    ax.set_xlabel("VV backscatter (dB, uncalibrated)", fontsize=6.8); ax.set_yticks([])
+    ax.legend(loc="upper right")
     return _png(fig)
-
-
-def _km_to_deg(km: float, lat: float) -> tuple:
-    return km / 111.32, km / (111.32 * max(math.cos(math.radians(lat)), 0.05))
 
 
 def tactical_map(detection: Dict[str, Any], ais: Optional[Dict[str, Any]], geo: Dict[str, Any], waypoints: List[Dict[str, Any]],
                  gaps: List[Dict[str, Any]]) -> bytes:
     lat0, lon0 = detection["latitude"], detection["longitude"]
     in_cov = geo.get("in_coverage", True)
-    fig, ax = plt.subplots(figsize=(7.2, 4.8))
-    pts_lat = [lat0] + [w["projected_lat"] for w in waypoints]
-    pts_lon = [lon0] + [w["projected_lon"] for w in waypoints]
+    fig, ax = plt.subplots(figsize=(7.0, 3.9))
+    ax.set_facecolor(LAND)
+    lats, lons = [lat0], [lon0]
+    for w in waypoints:
+        lats.append(w["projected_lat"]); lons.append(w["projected_lon"])
 
     if in_cov and os.path.exists(_EEZ_PATH):
         with open(_EEZ_PATH, "r", encoding="utf-8") as f:
             gj = json.load(f)
-        palette = [CYAN, PURPLE, GREEN, AMBER]
-        for i, feat in enumerate(gj.get("features", [])):
+        for feat in gj.get("features", []):
             geom = feat.get("geometry", {})
             if geom.get("type") != "Polygon":
                 continue
             ring = np.array(geom["coordinates"][0])
+            ax.fill(ring[:, 0], ring[:, 1], fc="#FFFFFF", ec=NAVY, lw=0.6, ls=(0, (4, 3)), alpha=0.85)
             props = feat.get("properties", {})
-            ax.fill(ring[:, 0], ring[:, 1], alpha=0.08, color=palette[i % 4])
-            ax.plot(ring[:, 0], ring[:, 1], lw=1, color=palette[i % 4], ls="--", label=f"{props.get('sovereign', 'Zone')} {props.get('zone_type', '')}"[:48])
-            pts_lat += list(ring[:, 1]); pts_lon += list(ring[:, 0])
+            ax.annotate(props.get("sovereign", ""), (ring[:, 0].mean(), ring[:, 1].mean()), fontsize=6.5, color=MUTED, ha="center")
+            lats += list(ring[:, 1]); lons += list(ring[:, 0])
         from src.geospatial.eez_checker import RealEEZChecker
         for z in RealEEZChecker.STS_ZONES:
             dlat, dlon = _km_to_deg(z["radius_km"], z["lat"])
-            ax.add_patch(plt.matplotlib.patches.Ellipse((z["lon"], z["lat"]), 2 * dlon, 2 * dlat, fill=False, ec=RED, lw=0.9, ls=":"))
-            ax.annotate(z["name"], (z["lon"], z["lat"]), fontsize=5.5, color=RED, ha="center")
+            ax.add_patch(Ellipse((z["lon"], z["lat"]), 2 * dlon, 2 * dlat, fill=False, ec=ACCENT, lw=0.6, ls=(0, (1, 2))))
     else:
-        ax.text(0.02, 0.02, "No EEZ / STS layers: position is outside the bundled Arabian Sea dataset", transform=ax.transAxes, fontsize=7, color=GREY)
+        ax.text(0.02, 0.04, "No jurisdiction layers: this position is outside the bundled Arabian Sea dataset.", transform=ax.transAxes, fontsize=6.8, color=MUTED)
 
     for g in gaps or []:
         if g.get("end_lat") is not None:
-            ax.plot([g["start_lon"], g["end_lon"]], [g["start_lat"], g["end_lat"]], color=AMBER, lw=1.6, ls="--")
-            ax.scatter([g["start_lon"]], [g["start_lat"]], c=AMBER, s=18, marker="s")
-            pts_lat += [g["start_lat"], g["end_lat"]]; pts_lon += [g["start_lon"], g["end_lon"]]
+            ax.plot([g["start_lon"], g["end_lon"]], [g["start_lat"], g["end_lat"]], color=NAVY, lw=1.1, ls=(0, (4, 2)))
+            ax.scatter([g["start_lon"]], [g["start_lat"]], s=10, c=NAVY, marker="s", zorder=4)
+            lats += [g["start_lat"], g["end_lat"]]; lons += [g["start_lon"], g["end_lon"]]
     if waypoints:
-        ax.plot([lon0] + [w["projected_lon"] for w in waypoints], [lat0] + [w["projected_lat"] for w in waypoints], color=PURPLE, lw=1.4)
+        ax.plot([lon0] + [w["projected_lon"] for w in waypoints], [lat0] + [w["projected_lat"] for w in waypoints], color=NAVY, lw=1.0, ls=(0, (2, 2)), zorder=3)
         for w in waypoints:
             dlat, dlon = _km_to_deg(w["uncertainty_radius_km"], w["projected_lat"])
-            ax.add_patch(plt.matplotlib.patches.Ellipse((w["projected_lon"], w["projected_lat"]), 2 * dlon, 2 * dlat, fc=PURPLE, alpha=0.12, ec=PURPLE, lw=0.8))
-            ax.annotate(f"+{w['projection_hours']:g} h", (w["projected_lon"], w["projected_lat"]), fontsize=6.5, color=PURPLE, xytext=(3, 3), textcoords="offset points")
-    ax.scatter([lon0], [lat0], c=RED, s=60, zorder=5, label="SAR detection")
+            ax.add_patch(Ellipse((w["projected_lon"], w["projected_lat"]), 2 * dlon, 2 * dlat, fc=NAVY, alpha=0.08, ec=NAVY, lw=0.5, hatch="////"))
+            ax.annotate(f"+{w['projection_hours']:g} h", (w["projected_lon"], w["projected_lat"]), fontsize=6.3, color=NAVY, xytext=(4, 4), textcoords="offset points")
     if ais:
-        ax.scatter([ais["longitude"]], [ais["latitude"]], c=GREEN, s=45, marker="^", zorder=5, label=f"AIS: {ais.get('vessel_name') or ais.get('mmsi')}")
-        pts_lat.append(ais["latitude"]); pts_lon.append(ais["longitude"])
+        ax.scatter([ais["longitude"]], [ais["latitude"]], s=26, c=NAVY, marker="^", zorder=5, label=f"AIS position ({ais.get('vessel_name') or ais.get('mmsi')})")
+        lats.append(ais["latitude"]); lons.append(ais["longitude"])
+    ax.scatter([lon0], [lat0], s=46, c=ACCENT, zorder=6, edgecolors="white", linewidths=0.8, label="Radar detection")
 
-    span = 3.0 if in_cov else 0.6
-    if in_cov:
-        ax.set_xlim(min(pts_lon) - 1, max(pts_lon) + 1); ax.set_ylim(min(pts_lat) - 1, max(pts_lat) + 1)
-    else:
-        ax.set_xlim(min(pts_lon) - span, max(pts_lon) + span); ax.set_ylim(min(pts_lat) - span, max(pts_lat) + span)
-    ax.set_aspect(1.0 / max(math.cos(math.radians(lat0)), 0.2))
-    ax.grid(alpha=0.25, lw=0.5); ax.tick_params(labelsize=7)
-    ax.set_xlabel("Longitude (°E)", fontsize=8); ax.set_ylabel("Latitude (°N)", fontsize=8)
-    ax.legend(fontsize=6, loc="upper left", frameon=True, framealpha=0.85)
-    ax.set_title("Tactical picture — target, AIS, forecast cones, jurisdiction layers", fontsize=9, color=NAVY)
+    # Fit the extent to a wide frame so the plot fills the figure instead of leaving blank margins.
+    pad = 1.0 if in_cov else 0.35
+    ratio = 7.0 / 3.5
+    coslat = max(math.cos(math.radians(lat0)), 0.2)
+    cy, cx = (min(lats) + max(lats)) / 2.0, (min(lons) + max(lons)) / 2.0
+    half_y = max((max(lats) - min(lats)) / 2.0 + pad, 0.3)
+    half_x = max((max(lons) - min(lons)) / 2.0 + pad, 0.3)
+    half_y = max(half_y, half_x * coslat / ratio)          # widen vertically if the track is wide
+    half_x = max(half_x, half_y * ratio / coslat)          # widen horizontally to fill the frame
+    ax.set_xlim(cx - half_x, cx + half_x); ax.set_ylim(cy - half_y, cy + half_y)
+    ax.set_aspect(1.0 / coslat, adjustable="box")
+    ax.set_xlabel("Longitude (°E)", fontsize=6.8); ax.set_ylabel("Latitude (°N)", fontsize=6.8)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=3)
+    for s in ax.spines.values():
+        s.set_visible(True); s.set_color(GRID)
     return _png(fig)
 
 
 def schematic_hull(detection: Dict[str, Any]) -> bytes:
-    """Clearly-labelled schematic for cases that have no real imagery."""
-    fig, ax = plt.subplots(figsize=(4.8, 2.6))
+    fig, ax = plt.subplots(figsize=(3.6, 1.9))
     L, B = detection["length_m"], detection["width_m"]
-    ax.add_patch(Rectangle((-L / 2, -B / 2), L, B, fc=CYAN, alpha=0.5, ec=NAVY))
-    ax.add_patch(Rectangle((-L / 2 - 30, -B / 2 - 30), L + 60, B + 60, fill=False, ec=AMBER, ls="--", lw=0.9))
+    ax.add_patch(Rectangle((-L / 2, -B / 2), L, B, fc=NAVY, alpha=0.75, ec=NAVY))
+    ax.add_patch(Rectangle((-L / 2 - 30, -B / 2 - 30), L + 60, B + 60, fill=False, ec=ACCENT, ls=(0, (3, 2)), lw=0.7))
     ax.set_xlim(-L / 2 - 60, L / 2 + 60); ax.set_ylim(-max(B, 40) - 50, max(B, 40) + 50)
-    ax.set_aspect("equal"); ax.tick_params(labelsize=6)
-    ax.set_title(f"SCHEMATIC ONLY (no raw radar chip) · {L:.0f} m × {B:.0f} m", fontsize=8, color=RED)
-    ax.set_xlabel("metres", fontsize=7)
+    ax.set_aspect("equal"); ax.set_xlabel("metres", fontsize=6.8)
+    ax.set_title(f"Schematic, not imagery · {L:.0f} × {B:.0f} m", fontsize=7, color=ACCENT, loc="left")
+    return _png(fig)
+
+
+def score_bars(rows: List[Dict[str, Any]], threshold: float = 0.70) -> Optional[bytes]:
+    """Cumulative score after each rule, as horizontal bars against the dark-evasion threshold."""
+    if not rows:
+        return None
+    fig, ax = plt.subplots(figsize=(7.0, 0.34 * len(rows) + 0.5))
+    labels = [r["label"] for r in rows][::-1]
+    vals = [r["cumulative"] for r in rows][::-1]
+    ax.barh(range(len(vals)), [1.0] * len(vals), color=FAINT, height=0.55, zorder=1)
+    ax.barh(range(len(vals)), vals, color=[ACCENT if i == 0 else NAVY for i in range(len(vals))], height=0.55, zorder=2)
+    ax.axvline(threshold, color=ACCENT, lw=0.9, ls=(0, (3, 2)), zorder=3)
+    ax.set_yticks(range(len(vals))); ax.set_yticklabels(labels, fontsize=7.2, color=INK)
+    for i, r in enumerate(rows[::-1]):
+        ax.text(1.015, i, f"{r['delta']:+.2f} = {r['cumulative']:.2f}" if r.get("delta") not in (None, 0) else f"{r['cumulative']:.2f}", va="center", fontsize=6.8, family="JetBrains Mono", color=MUTED)
+    ax.set_xlim(0, 1); ax.set_xticks([0, 0.4, 0.7, 1.0]); ax.grid(False); ax.grid(axis="x")
+    ax.tick_params(axis="y", length=0)
+    for s in ("left", "bottom"):
+        ax.spines[s].set_visible(False)
     return _png(fig)
 
 
@@ -163,76 +203,73 @@ def sensitivity_curve(points: List[tuple], baseline: tuple) -> Optional[bytes]:
     if not points:
         return None
     xs, ys = zip(*points)
-    fig, ax = plt.subplots(figsize=(5.2, 2.8))
-    ax.plot(xs, ys, color=CYAN, lw=1.8)
-    ax.axvline(30, color=GREY, ls=":", lw=0.9); ax.text(31, 0.02, "30 m SOLAS-style exemption line", fontsize=6, color=GREY)
-    ax.scatter([baseline[0]], [baseline[1]], c=RED, zorder=5, s=36, label="This target")
-    ax.axhline(0.70, color=RED, ls="--", lw=0.8); ax.text(xs[0], 0.715, "0.70 = dark-evasion threshold", fontsize=6, color=RED)
-    ax.set_xlabel("Measured length (m)", fontsize=8); ax.set_ylabel("Dark-vessel probability", fontsize=8)
-    ax.set_ylim(0, 1); ax.tick_params(labelsize=7); ax.legend(fontsize=7, frameon=False)
-    ax.set_title("Sensitivity of the score to vessel length (all else equal)", fontsize=9, color=NAVY)
+    fig, ax = plt.subplots(figsize=(3.4, 2.1))
+    ax.plot(xs, ys, color=NAVY, lw=1.2)
+    ax.axhline(0.70, color=ACCENT, lw=0.8, ls=(0, (3, 2))); ax.text(xs[-1], 0.625, "0.70 dark-evasion line", fontsize=6.2, color=ACCENT, ha="right")
+    ax.axvline(30, color=MUTED, lw=0.6, ls=":"); ax.text(32, 0.04, "30 m", fontsize=6.2, color=MUTED)
+    ax.scatter([baseline[0]], [baseline[1]], s=22, c=ACCENT, zorder=5, edgecolors="white", linewidths=0.6)
+    ax.set_xlabel("Measured length (m)", fontsize=6.8); ax.set_ylabel("Dark-vessel probability", fontsize=6.8); ax.set_ylim(0, 1)
     return _png(fig)
 
 
 def counterfactual_bars(rows: List[Dict[str, Any]]) -> Optional[bytes]:
     if not rows:
         return None
-    fig, ax = plt.subplots(figsize=(6.2, 0.45 * len(rows) + 1.0))
+    fig, ax = plt.subplots(figsize=(3.6, 0.3 * len(rows) + 0.6))
     labels = [r["label"] for r in rows][::-1]
     vals = [r["probability"] for r in rows][::-1]
-    colors = [RED if v >= 0.7 else (AMBER if v >= 0.4 else GREEN) for v in vals]
-    ax.barh(labels, vals, color=colors)
+    ax.barh(labels, vals, color=[ACCENT if lab.startswith("Baseline") else NAVY for lab in labels], height=0.55)
     for i, v in enumerate(vals):
-        ax.text(v + 0.01, i, f"{v:.2f}", va="center", fontsize=7)
-    ax.axvline(0.70, color=RED, ls="--", lw=0.8); ax.axvline(0.40, color=AMBER, ls="--", lw=0.8)
-    ax.set_xlim(0, 1.08); ax.tick_params(labelsize=7)
-    ax.set_xlabel("Dark-vessel probability", fontsize=8)
-    ax.set_title("Counterfactual re-scoring (same deterministic scorer)", fontsize=9, color=NAVY)
+        ax.text(v + 0.015, i, f"{v:.2f}", va="center", fontsize=6.5, family="JetBrains Mono", color=MUTED)
+    ax.axvline(0.70, color=ACCENT, lw=0.8, ls=(0, (3, 2)))
+    ax.set_xlim(0, 1.1); ax.grid(False); ax.grid(axis="x"); ax.tick_params(axis="y", length=0, labelsize=6.6)
+    for s in ("left",):
+        ax.spines[s].set_visible(False)
     return _png(fig)
 
 
-_NODES = ["MissionController", "SARAISCorrelator", "FeatureEngineerNode", "SanctionsScreenerNode", "ForensicAssessorNode", "HumanReviewNode", "ReportPreparerNode"]
-_STATUS_COLOR = {"SUCCESS": GREEN, "APPROVED": GREEN, "DEGRADED": AMBER, "FAILED": RED, "SKIPPED": GREY, "OVERRIDDEN": AMBER}
+_NODES = ["Mission", "SAR–AIS\ncorrelate", "Features", "Sanctions", "Forensic\nassess", "Human\nreview", "Report"]
+_NODE_IDS = ["MissionController", "SARAISCorrelator", "FeatureEngineerNode", "SanctionsScreenerNode", "ForensicAssessorNode", "HumanReviewNode", "ReportPreparerNode"]
 
 
 def workflow_diagram(trace: List[Dict[str, Any]]) -> bytes:
     status = {t["agent_name"]: t.get("status", "SUCCESS") for t in trace}
-    fig, ax = plt.subplots(figsize=(10.5, 2.2))
-    ax.set_xlim(0, 7.4); ax.set_ylim(0, 2.0); ax.axis("off")
-    xs = [0.05 + i * 1.05 for i in range(7)]
-    for i, name in enumerate(_NODES):
-        run = name in status
-        col = _STATUS_COLOR.get(status.get(name, ""), "#CBD5E1")
-        ax.add_patch(FancyBboxPatch((xs[i], 0.8), 0.9, 0.7, boxstyle="round,pad=0.02", fc=col if run else "white", ec=NAVY if run else "#CBD5E1", alpha=0.85 if run else 1, lw=1))
-        label = name.replace("Node", "").replace("SARAIS", "SAR-AIS\n").replace("Controller", "\nController").replace("Engineer", "\nEngineer").replace("Screener", "\nScreener").replace("Assessor", "\nAssessor").replace("Review", "\nReview").replace("Preparer", "\nPreparer")
-        ax.text(xs[i] + 0.45, 1.15, f"{i + 1}\n{label}", ha="center", va="center", fontsize=5.8, color="white" if run else GREY)
+    fig, ax = plt.subplots(figsize=(7.0, 1.15))
+    ax.set_xlim(0, 7.4); ax.set_ylim(0, 1.2); ax.axis("off"); ax.grid(False)
+    for i, (label, nid) in enumerate(zip(_NODES, _NODE_IDS)):
+        x = 0.05 + i * 1.05
+        st = status.get(nid)
+        fc = NAVY if st in ("SUCCESS", "APPROVED") else ("white" if st is None else "#FFFFFF")
+        ec = ACCENT if st in ("DEGRADED", "FAILED", "OVERRIDDEN") else (NAVY if st else GRID)
+        ax.add_patch(Rectangle((x, 0.3), 0.9, 0.7, fc=fc, ec=ec, lw=1.2 if st else 0.8, ls="-" if st else (0, (3, 2))))
+        color = "white" if st in ("SUCCESS", "APPROVED") else (INK if st else MUTED)
+        ax.text(x + 0.45, 0.65, label, ha="center", va="center", fontsize=6.4, color=color)
+        ax.text(x + 0.03, 0.04, f"{i + 1:02d}" + ("" if st else " skipped"), fontsize=5.8, family="JetBrains Mono", color=MUTED)
         if i < 6:
-            ax.add_patch(FancyArrowPatch((xs[i] + 0.92, 1.15), (xs[i + 1] - 0.02, 1.15), arrowstyle="-|>", mutation_scale=7, color=GREY, lw=0.8))
-    if "HumanReviewNode" not in status:
-        ax.text(xs[5] + 0.45, 0.55, "skipped: no human review required", ha="center", fontsize=5.5, color=GREY)
-    ax.set_title("LangGraph execution path (green = success, amber = degraded, white = not executed)", fontsize=8, color=NAVY)
+            ax.annotate("", xy=(x + 1.03, 0.65), xytext=(x + 0.92, 0.65), arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.7))
     return _png(fig)
 
 
 def latency_chart(trace: List[Dict[str, Any]]) -> Optional[bytes]:
-    rows = [(t["agent_name"], (t.get("details") or {}).get("latency_ms", t.get("latency_ms"))) for t in trace]
+    rows = [(t["agent_name"], t.get("latency_ms", (t.get("details") or {}).get("latency_ms"))) for t in trace]
     rows = [(n, float(v)) for n, v in rows if v is not None]
     if not rows:
         return None
-    fig, ax = plt.subplots(figsize=(6.0, 0.4 * len(rows) + 0.9))
-    ax.barh([r[0] for r in rows][::-1], [r[1] for r in rows][::-1], color=CYAN)
-    ax.set_xlabel("Wall-clock latency (ms)", fontsize=8); ax.tick_params(labelsize=7)
-    ax.set_title("Per-node latency", fontsize=9, color=NAVY)
+    fig, ax = plt.subplots(figsize=(3.6, 0.28 * len(rows) + 0.6))
+    ax.barh([r[0].replace("Node", "") for r in rows][::-1], [r[1] for r in rows][::-1], color=NAVY, height=0.55)
+    ax.set_xlabel("Wall-clock time (ms)", fontsize=6.8); ax.grid(False); ax.grid(axis="x"); ax.tick_params(axis="y", length=0, labelsize=6.6)
+    ax.spines["left"].set_visible(False)
     return _png(fig)
 
 
 def ais_gap_chart(gaps: List[Dict[str, Any]]) -> Optional[bytes]:
     if not gaps:
         return None
-    fig, ax = plt.subplots(figsize=(6.0, 0.5 * len(gaps) + 1.0))
+    fig, ax = plt.subplots(figsize=(3.6, 0.3 * len(gaps) + 1.0))
     ax.barh([f"Gap {i + 1}" for i in range(len(gaps))][::-1], [g["duration_hours"] for g in gaps][::-1],
-            color=[RED if g.get("is_suspicious") else GREY for g in gaps][::-1])
-    ax.axvline(12, color=AMBER, ls="--", lw=0.8); ax.text(12.2, -0.4, "12 h outage trigger", fontsize=6, color=AMBER)
-    ax.set_xlabel("Duration (hours)", fontsize=8); ax.tick_params(labelsize=7)
-    ax.set_title("AIS transmission gaps (red = flagged suspicious)", fontsize=9, color=NAVY)
+            color=[ACCENT if g.get("is_suspicious") else "#B9C3CD" for g in gaps][::-1], height=0.4)
+    ax.set_ylim(-0.7, len(gaps) - 0.3)
+    ax.axvline(12, color=NAVY, lw=0.8, ls=(0, (3, 2))); ax.text(12.3, -0.45, "12 h trigger", fontsize=6.2, color=NAVY)
+    ax.set_xlabel("Hours without a broadcast", fontsize=6.8); ax.grid(False); ax.grid(axis="x"); ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
     return _png(fig)
