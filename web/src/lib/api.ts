@@ -17,7 +17,7 @@ export interface SARDetection {
   confidence: number;
   sensor?: string;
   polarization?: string;
-  target_to_clutter_ratio_db?: number;
+  target_clutter_ratio_db?: number;
 }
 
 export interface AISObservation {
@@ -60,7 +60,13 @@ export interface ScenarioFixture {
     ais?: ProvenanceTag;
     classification?: ProvenanceTag;
     source?: string;
+    imagery?: ProvenanceTag;
+    note?: string;
   };
+  chip_id?: string;
+  all_detections?: SARDetection[];
+  ground_truth?: { mmsi: string; vessel_name: string; length_m: number };
+  ground_truth_ais?: AISObservation;
 }
 
 export interface AgentTraceEntry {
@@ -133,6 +139,7 @@ export interface InvestigationResult {
     distance_to_eez_boundary_km: number;
     distance_to_sts_zone_km?: number;
     nearest_sts_zone_name?: string;
+    in_coverage?: boolean;
   };
   degradation_notes: string[];
 }
@@ -157,6 +164,7 @@ export interface PlatformMeta {
   metrics: Record<string, any>;
   sanctions_publish_dates: Record<string, string>;
   eez_coverage_bbox: Record<string, any>;
+  llm?: { available: boolean; mode: string | null; missing: string[] };
 }
 
 export interface AuditLedgerEntry {
@@ -208,6 +216,12 @@ export async function runInvestigation(payload: {
   historical_gaps?: AISGap[];
   simulate_ais_offline?: boolean;
   simulate_sanctions_offline?: boolean;
+  chip_id?: string;
+  scenario_id?: string;
+  ground_truth?: ScenarioFixture['ground_truth'];
+  ground_truth_ais?: AISObservation;
+  provenance?: ScenarioFixture['provenance'];
+  all_detections?: SARDetection[];
 }): Promise<InvestigationResult> {
   const res = await fetch(`${BASE_URL}/api/investigate`, {
     method: 'POST',
@@ -233,5 +247,139 @@ export async function submitHITLDecision(payload: {
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`HITL submission failed: ${res.statusText}`);
+  return res.json();
+}
+
+export interface RealCaseRow {
+  chip_id: string;
+  mmsi: string;
+  vessel_name: string;
+  vessel_type: string;
+  true_length_m: number;
+  latitude: number;
+  longitude: number;
+  acq_time: string;
+}
+
+export async function fetchRealCases(): Promise<{ total: number; source: string; cases: RealCaseRow[] }> {
+  const res = await fetch(`${BASE_URL}/api/cases/real`);
+  if (!res.ok) throw new Error(`Failed to load real cases: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchRealCase(chipId: string, conf = 0.35): Promise<ScenarioFixture> {
+  const res = await fetch(`${BASE_URL}/api/cases/real/${encodeURIComponent(chipId)}?conf=${conf}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({ detail: res.statusText }))).detail);
+  return res.json();
+}
+
+export interface InventoryAsset {
+  id: string;
+  name: string;
+  provenance: ProvenanceTag;
+  count?: number | null;
+  unit?: string;
+  size_bytes?: number;
+  path: string;
+  source?: string;
+  details?: string;
+  sha256?: string | null;
+}
+
+export async function fetchInventory(): Promise<{ assets: InventoryAsset[]; tally: Record<string, number> }> {
+  const res = await fetch(`${BASE_URL}/api/data/inventory`);
+  if (!res.ok) throw new Error(`Failed to load inventory: ${res.statusText}`);
+  return res.json();
+}
+
+/** Downloads the exhaustive PDF dossier for a report and triggers a browser save. */
+export async function downloadReportPdf(reportId: string, useLlm: boolean): Promise<{ narrative: string }> {
+  const res = await fetch(`${BASE_URL}/api/report/${encodeURIComponent(reportId)}/export?format=pdf&llm=${useLlm}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({ detail: res.statusText }))).detail);
+  const blob = await res.blob();
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? `${reportId}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return { narrative: res.headers.get('X-Narrative') ?? 'RULE_BASED' };
+}
+
+export interface SavedCase {
+  mission_id: string;
+  created_at: string;
+  report_id: string | null;
+  case: string;
+  is_real: boolean;
+  ais_withheld: boolean;
+  threat_tier: string | null;
+  classification: string | null;
+  probability: number | null;
+  hitl_required: boolean;
+  hitl_decisions: number;
+  in_coverage: boolean;
+  degradations: number;
+}
+
+export async function fetchSavedCases(): Promise<{ total: number; cases: SavedCase[] }> {
+  const res = await fetch(`${BASE_URL}/api/cases/saved`);
+  if (!res.ok) throw new Error(`Failed to load cases: ${res.statusText}`);
+  return res.json();
+}
+
+export interface SanctionMatchRow {
+  source_list: string;
+  entity_name: string;
+  matched_imo?: string | null;
+  matched_mmsi?: string | null;
+  flag_state?: string | null;
+  sanction_programs: string[];
+  designation_date?: string | null;
+  match_score: number;
+  match_basis: string;
+  remarks?: string | null;
+}
+
+export interface SanctionsScreenResult {
+  is_degraded: boolean;
+  result: {
+    query_target: string;
+    is_sanctioned: boolean;
+    overall_sanctions_risk: string;
+    matches: SanctionMatchRow[];
+    screened_sources: string[];
+    screening_notes?: string | null;
+  };
+}
+
+export async function screenVessel(q: { imo?: string; mmsi?: string; vessel_name?: string; force_offline?: boolean }): Promise<SanctionsScreenResult> {
+  const res = await fetch(`${BASE_URL}/api/sanctions/screen`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(q),
+  });
+  if (!res.ok) throw new Error(`Screening failed: ${res.statusText}`);
+  return res.json();
+}
+
+export interface ResultsPayload {
+  sources: { key: string; file: string; modified: string; sha256: string | null }[];
+  real_ablation?: {
+    timestamp: string;
+    task_description: string;
+    total_real_chips_analyzed: number;
+    subsets: Record<string, { feature_count: number; roc_auc: number; pr_auc: number; f1_score: number; accuracy: number; balanced_accuracy: number; brier_score: number }>;
+  };
+  agent_scenarios?: { scenario_id: number; name: string; status: string; duration_ms: number; nodes_executed: string[]; degradation_events_count: number; hitl_interrupted: boolean; final_threat_tier: string }[];
+  llm_eval?: Record<string, number | string>;
+}
+
+export async function fetchResults(): Promise<ResultsPayload> {
+  const res = await fetch(`${BASE_URL}/api/results`);
+  if (!res.ok) throw new Error(`Failed to load results: ${res.statusText}`);
   return res.json();
 }

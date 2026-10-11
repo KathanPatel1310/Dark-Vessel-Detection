@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Satellite, Radar, Cpu, FileText, ArrowRight, Info } from 'lucide-react';
+import { Satellite, Radar, Cpu, FileText, ArrowRight } from 'lucide-react';
 import { ScrollFrameHero } from '../components/ScrollFrameHero';
 import { ProvenanceChip } from '../components/ProvenanceChip';
 import { useReveal } from '../lib/useReveal';
-import type { PlatformMeta, ScenarioFixture } from '../lib/api';
-import { fetchMeta, fetchScenarios } from '../lib/api';
+import type { PlatformMeta, ScenarioFixture, InventoryAsset } from '../lib/api';
+import { fetchMeta, fetchScenarios, fetchInventory } from '../lib/api';
 
 interface ShowcaseProps {
   onLaunchOps: (scenarioId?: string) => void;
@@ -16,7 +16,7 @@ const CHAPTERS = [
   { id: 'how-it-works', label: 'How it works' },
   { id: 'agents', label: 'Agent workflow' },
   { id: 'legal', label: 'Legal basis' },
-  { id: 'limits', label: 'Limits' },
+  { id: 'evidence', label: 'Evidence' },
   { id: 'try', label: 'Try it' },
 ] as const;
 
@@ -51,6 +51,25 @@ const Section = ({
   </section>
 );
 
+const DOSSIER_SECTIONS = [
+  'Executive assessment',
+  'Situation and timeline',
+  'Target identification',
+  'Radar imagery evidence',
+  'AIS analysis',
+  'Geospatial and jurisdiction',
+  'Sanctions screening',
+  'Full feature appendix',
+  'Risk assessment and counterfactuals',
+  'Predictive forecast',
+  'Agent workflow trace',
+  'Human review and audit trail',
+  'Legal basis',
+  'Alternative hypotheses and limits',
+  'Data lineage and provenance',
+  'Integrity and reproducibility',
+] as const;
+
 const NODES = [
   ['Mission Controller', 'Defines the area and time window'],
   ['SAR–AIS Correlator', 'Matches the radar target to AIS reports'],
@@ -66,13 +85,21 @@ export const Showcase = ({ onLaunchOps }: ShowcaseProps) => {
   const [scenarios, setScenarios] = useState<ScenarioFixture[]>([]);
   const [active, setActive] = useState<string>('');
   const [apiError, setApiError] = useState(false);
+  const [assets, setAssets] = useState<InventoryAsset[]>([]);
 
   useEffect(() => {
     fetchMeta().then(setMeta).catch(() => setApiError(true));
     fetchScenarios().then(setScenarios).catch(() => setApiError(true));
+    fetchInventory().then((i) => setAssets(i.assets)).catch(() => undefined);
   }, []);
 
-  useReveal([scenarios.length, meta]);
+  const inv = {
+    chips: assets.find((a) => a.id === 'sar_chips')?.count ?? null,
+    sanctions: assets.find((a) => a.id === 'sanctions_index')?.count ?? null,
+    synthetic: assets.filter((a) => a.provenance === 'SYNTHETIC').reduce((n, a) => n + (a.count ?? 0), 0) || null,
+  };
+
+  useReveal([scenarios.length, meta, assets.length]);
 
   // Highlight the chapter currently in view
   useEffect(() => {
@@ -241,34 +268,63 @@ export const Showcase = ({ onLaunchOps }: ShowcaseProps) => {
       </Section>
 
       <Section
-        id="limits"
+        id="evidence"
         index={5}
-        eyebrow="Limits"
+        eyebrow="Evidence"
         title={
           <>
-            What this system <span className="accent-word">cannot</span> tell you.
+            Every claim traces back to <span className="accent-word">data you can open</span>.
           </>
         }
+        lead="Nothing on screen is decoration. The platform shows exactly which inputs are real, which are computed from real data, and which are synthetic test fixtures — and every case can be exported as a full PDF dossier."
       >
-        <div className="reveal flex max-w-3xl gap-4 rounded-2xl border border-amber-500/30 bg-amber-950/10 p-7">
-          <Info className="mt-1 h-5 w-5 shrink-0 text-amber-400" />
-          <div className="space-y-3 leading-relaxed text-slate-300">
-            <p>
-              A radar detection alone does not prove a ship is hiding. Rough seas cause false returns, and vessels under about 30 m
-              are legally exempt from AIS.
-            </p>
-            <p>
-              Scenario data is synthetic, the risk score is rule-based, and the EEZ map covers the Arabian Sea only. Every value in
-              the app is tagged with where it came from.
-            </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <ProvenanceChip provenance="REAL" />
-              <ProvenanceChip provenance="DERIVED" />
-              <ProvenanceChip provenance="SYNTHETIC" />
-              <ProvenanceChip provenance="HEURISTIC" />
-            </div>
+        <div className="grid gap-5 lg:grid-cols-5">
+          <div className="reveal rounded-2xl border border-white/10 bg-[#0C1424] p-7 lg:col-span-2">
+            <h3 className="font-display text-xl font-semibold text-white">What the platform is built on</h3>
+            <dl className="mt-5 space-y-4">
+              {[
+                ['REAL', inv.chips, 'Sentinel-1 radar chips with the vessel’s own AIS'],
+                ['REAL', inv.sanctions, 'sanctioned vessels indexed from OFAC and UN lists'],
+                ['DERIVED', meta?.feature_count ?? null, 'engineered features computed per detection'],
+                ['SYNTHETIC', inv.synthetic, 'test fixtures and generated tables, always labelled'],
+              ].map(([tag, n, label]) => (
+                <div key={String(label)} className="flex items-baseline gap-4">
+                  <dt className="w-20 shrink-0 text-right font-stat text-3xl font-semibold text-white">{n == null ? '—' : Number(n).toLocaleString()}</dt>
+                  <dd className="text-sm leading-snug text-slate-300">
+                    <span className="mr-2 align-middle"><ProvenanceChip provenance={String(tag)} /></span>
+                    {label}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <Link to="/data" className="mt-6 inline-flex items-center gap-2 text-sm text-cyan-300 underline underline-offset-4">
+              Browse the full data inventory <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="reveal rounded-2xl border border-white/10 bg-[#0C1424] p-7 lg:col-span-3">
+            <h3 className="font-display text-xl font-semibold text-white">What’s inside an exported dossier</h3>
+            <p className="mt-1 text-sm text-slate-400">One PDF per case — roughly 19 pages with embedded radar imagery, maps and tables.</p>
+            <ol className="mt-5 grid gap-x-6 gap-y-1.5 text-sm text-slate-300 sm:grid-cols-2">
+              {DOSSIER_SECTIONS.map((t, i) => (
+                <li key={t} className="flex gap-3">
+                  <span className="w-5 shrink-0 text-right font-mono text-xs leading-6 text-cyan-400">{i + 1}</span>
+                  {t}
+                </li>
+              ))}
+            </ol>
+            <button
+              onClick={() => onLaunchOps()}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
+            >
+              Run a case and export one <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
+        <p className="mt-6 text-sm text-slate-500">
+          Honest caveats live where they matter — in every exported dossier (§14) and on the{' '}
+          <Link to="/data" className="text-cyan-400 underline underline-offset-4">Data</Link> page.
+        </p>
       </Section>
 
       <Section

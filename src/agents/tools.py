@@ -249,7 +249,7 @@ def generate_structured_report(
 
     exec_summary = (
         f"Autonomous Maritime Intelligence Bulletin for Target {target_detection_id} "
-        f"in {geo_context.eez_country or 'International Waters'}. Classified as {dark_flag} "
+        f"in {(geo_context.eez_country or 'International Waters') if geo_context.in_coverage else 'an area outside the bundled jurisdiction dataset'}. Classified as {dark_flag} "
         f"with anomaly score {risk_assessment.overall_anomaly_score:.2f} ({threat_tier} threat){hitl_status}{degrade_flag}. "
         f"Radar estimated hull length {sar.length_m:.1f}m, TCR {sar.target_to_clutter_ratio_db or 0.0:.1f} dB. "
     )
@@ -300,12 +300,18 @@ def generate_structured_report(
 
     # Geospatial analysis
     eez_status = f"INSIDE sovereign EEZ of {geo_context.eez_country}" if geo_context.inside_eez else f"OUTSIDE EEZ ({geo_context.distance_to_eez_boundary_km:.1f} km from boundary)"
-    geo_summary = (
-        f"Geospatial Context: Operating at ({geo_context.latitude:.4f}, {geo_context.longitude:.4f}), "
-        f"{geo_context.distance_to_coast_km:.1f} km offshore. Jurisdiction: {eez_status}. "
-        f"Nearest Port: {geo_context.nearest_port_name} ({geo_context.distance_to_nearest_port_km or 0.0:.1f} km). "
-        f"Proximity to STS Rendezvous Sector: {geo_context.distance_to_sts_zone_km or 0.0:.1f} km to {geo_context.nearest_sts_zone_name}."
-    )
+    if not geo_context.in_coverage:
+        geo_summary = (
+            f"Geospatial Context: Position ({geo_context.latitude:.4f}, {geo_context.longitude:.4f}) lies outside the bundled "
+            f"Arabian Sea EEZ/STS dataset. No jurisdiction, port-proximity or corridor analysis was performed."
+        )
+    else:
+        geo_summary = (
+            f"Geospatial Context: Operating at ({geo_context.latitude:.4f}, {geo_context.longitude:.4f}), "
+            f"{geo_context.distance_to_coast_km:.1f} km offshore. Jurisdiction: {eez_status}. "
+            f"Nearest Port: {geo_context.nearest_port_name} ({geo_context.distance_to_nearest_port_km or 0.0:.1f} km). "
+            f"Proximity to STS Rendezvous Sector: {geo_context.distance_to_sts_zone_km or 0.0:.1f} km to {geo_context.nearest_sts_zone_name}."
+        )
 
     # Statutory citations
     statutes: List[str] = []
@@ -313,7 +319,10 @@ def generate_structured_report(
 
     if sar.length_m >= 50.0 and not fusion.is_spatially_correlated:
         statutes.append("SOLAS Chapter V, Regulation 19 (Mandatory AIS carriage for commercial vessels >= 300 GT)")
-        recommendations.append("File urgent dark vessel encounter notice with Indian Ocean Information Fusion Centre (IFC-IOR).")
+        if geo_context.in_coverage:
+            recommendations.append("File urgent dark vessel encounter notice with Indian Ocean Information Fusion Centre (IFC-IOR).")
+        else:
+            recommendations.append("Refer to the competent regional maritime authority for follow-up; this position is outside the bundled Indian Ocean dataset.")
 
     if geo_context.inside_eez and not fusion.is_spatially_correlated:
         statutes.append("UNCLOS Article 73 (Enforcement of sovereign rights within Exclusive Economic Zone)")

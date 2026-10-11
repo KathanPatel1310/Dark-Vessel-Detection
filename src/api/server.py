@@ -490,7 +490,8 @@ def get_meta():
                 "link": "https://ofac.treasury.gov/specially-designated-nationals-list-data-formats-data-schemas"
             }
         ],
-        "metrics": metrics_data
+        "metrics": metrics_data,
+        "llm": __import__("src.reporting.narrative", fromlist=["x"]).llm_status(),
     }
 
 
@@ -855,6 +856,9 @@ def export_report(report_id: str, format: str = Query("json"), llm: bool = Query
     if not rep:
         rep = next((r for r in GENERATED_REPORTS.values() if r.get("mission_id") == report_id or r.get("report_id") == report_id), None)
     if not rep:
+        saved = load_case_ctx(report_id)
+        rep = saved.get("report") if saved else None
+    if not rep:
         raise HTTPException(status_code=404, detail=f"Intelligence report '{report_id}' not found.")
 
     raw_json = json.dumps(rep, sort_keys=True, default=str)
@@ -885,7 +889,7 @@ def export_report(report_id: str, format: str = Query("json"), llm: bool = Query
         }
 
     if format.lower() == "pdf":
-        ctx = CASE_CONTEXTS.get(report_id) or CASE_CONTEXTS.get(rep.get("mission_id", "")) or CASE_CONTEXTS.get(rep.get("report_id", ""))
+        ctx = load_case_ctx(report_id) or load_case_ctx(rep.get("mission_id", "")) or load_case_ctx(rep.get("report_id", ""))
         if ctx is None:
             raise HTTPException(status_code=404, detail="Full investigation context for this report is unavailable; re-run the investigation.")
         from src.reporting.service import generate_pdf
@@ -965,6 +969,68 @@ def export_report(report_id: str, format: str = Query("json"), llm: bool = Query
         "report": rep
     }
 
+
+
+def load_case_ctx(case_id: str) -> Optional[Dict[str, Any]]:
+    """Case context from memory, else from the persisted JSON (survives server restarts)."""
+    if not case_id:
+        return None
+    if case_id in CASE_CONTEXTS:
+        return CASE_CONTEXTS[case_id]
+    if not os.path.isdir(CASES_DIR):
+        return None
+    safe = "".join(ch for ch in case_id if ch.isalnum() or ch in "-_")
+    candidates = [os.path.join(CASES_DIR, f"{safe}.json")] if safe == case_id else []
+    candidates += sorted(glob.glob(os.path.join(CASES_DIR, "*.json")), reverse=True)
+    for fpath in candidates:
+        try:
+            with open(fpath, "r", encoding="utf-8") as fh:
+                ctx = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        if case_id in (ctx.get("mission_id"), (ctx.get("report") or {}).get("report_id")):
+            CASE_CONTEXTS[ctx["mission_id"]] = ctx
+            return ctx
+    return None
+
+
+@app.get("/api/cases/saved")
+def list_saved_cases(limit: int = Query(100, ge=1, le=500)):
+    """Summaries of persisted investigations, newest first."""
+    rows: List[Dict[str, Any]] = []
+    for fpath in glob.glob(os.path.join(CASES_DIR, "*.json")):
+        try:
+            with open(fpath, "r", encoding="utf-8") as fh:
+                c = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        rep, risk, req = c.get("report") or {}, c.get("risk_assessment") or {}, c.get("request") or {}
+        rows.append({
+            "mission_id": c.get("mission_id"), "created_at": c.get("created_at"), "report_id": rep.get("report_id"),
+            "case": req.get("scenario_id") or req.get("chip_id") or "custom", "is_real": bool(req.get("chip_id")),
+            "ais_withheld": bool(req.get("simulate_ais_offline")), "threat_tier": rep.get("threat_tier"),
+            "classification": risk.get("dark_vessel_classification"), "probability": risk.get("dark_vessel_probability"),
+            "hitl_required": c.get("human_in_the_loop_required"), "hitl_decisions": len(c.get("hitl_decisions") or []),
+            "in_coverage": (c.get("geo_context") or {}).get("in_coverage", True), "degradations": len(c.get("degradation_notes") or []),
+        })
+    rows.sort(key=lambda r: r["created_at"] or "", reverse=True)
+    return {"total": len(rows), "cases": rows[:limit]}
+
+
+@app.get("/api/results")
+def get_results():
+    """Measured results exactly as recorded in reports/ (not recomputed by the app)."""
+    reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "reports"))
+    out: Dict[str, Any] = {"sources": []}
+    for key, fname in (("real_ablation", "real_feature_ablation_results.json"), ("synthetic_ablation", "feature_ablation_results.json"),
+                       ("agent_scenarios", "agent_scenario_results.json"), ("llm_eval", "llm_evaluation_results.json")):
+        fpath = os.path.join(reports_dir, fname)
+        if os.path.exists(fpath):
+            with open(fpath, "r", encoding="utf-8") as fh:
+                out[key] = json.load(fh)
+            out["sources"].append({"key": key, "file": f"reports/{fname}", "modified": datetime.fromtimestamp(os.path.getmtime(fpath), timezone.utc).isoformat(),
+                                   "sha256": real_cases.sha256_file(fpath)})
+    return out
 
 # ---------------------------------------------------------------------------
 # Real data: Sentinel-1 case library, chip imagery, inventory
