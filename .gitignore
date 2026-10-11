@@ -50,6 +50,11 @@ training/data/real_maritime_*.jsonl
 outputs/*
 !outputs/.gitkeep
 
+# Large video source files (frames extracted to app/frames/ instead)
+*.mp4
+*.mov
+*.avi
+
 # Model weights & large binaries (Strictly excluded from Git)
 *.pt
 *.pth
@@ -66,9 +71,6 @@ models/*
 !models/.gitkeep
 !models/README.md
 
-# Frontend app (work-in-progress, excluded from PR)
-app/*
-!app/.gitkeep
 
 # Jupyter Notebooks
 .ipynb_checkpoints

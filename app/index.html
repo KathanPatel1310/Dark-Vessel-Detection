@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Vessel Detection — Maritime AI Intelligence</title>
+  <meta name="description" content="Next-generation AI-powered dark vessel detection using SAR imagery and maritime intelligence." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="cinematic.css" />
+</head>
+<body>
+
+  <!-- CINEMATIC SCROLL HERO -->
+  <section id="hero-scroll-section">
+    <div id="canvas-sticky-wrapper">
+      <canvas id="hero-canvas"></canvas>
+
+      <div id="hud-overlay">
+        <!-- Top navigation -->
+        <nav id="top-nav">
+          <div class="nav-logo">
+            <span class="logo-icon">?</span>
+            <span class="logo-text">DARK<span class="accent">VESSEL</span></span>
+          </div>
+          <div class="nav-links">
+            <a href="#about">Intelligence</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#metrics">Metrics</a>
+            <a href="#contact">Contact</a>
+          </div>
+          <div class="nav-status">
+            <span class="status-dot"></span>
+            <span class="status-label">SYSTEM ONLINE</span>
+          </div>
+        </nav>
+
+        <!-- Scroll progress indicator -->
+        <div id="scroll-progress-rail">
+          <div id="scroll-progress-fill"></div>
+          <div id="scroll-frame-counter">FRAME <span id="frame-num">001</span> / 150</div>
+        </div>
+
+        <!-- Hero center text -->
+        <div id="hero-center-text">
+          <div class="hero-eyebrow">MARITIME AI INTELLIGENCE PLATFORM</div>
+          <h1 class="hero-headline">
+            Dark Vessel<br />
+            <span class="headline-accent">Detection</span>
+          </h1>
+          <p class="hero-sub">
+            Precision SAR-based identification of vessels<br />
+            operating without AIS transponders
+          </p>
+          <div class="hero-cta-row">
+            <a href="#about" class="btn-primary" id="cta-explore">Explore System</a>
+            <a href="https://github.com/KathanPatel1310/Dark-Vessel-Detection" class="btn-ghost" id="cta-docs" target="_blank">View Research</a>
+          </div>
+        </div>
+
+        <!-- Bottom telemetry strip -->
+        <div id="telemetry-strip">
+          <div class="tele-item">
+            <span class="tele-label">VESSELS TRACKED</span>
+            <span class="tele-value" id="t-vessels">2,847</span>
+          </div>
+          <div class="tele-divider"></div>
+          <div class="tele-item">
+            <span class="tele-label">DETECTION ACCURACY</span>
+            <span class="tele-value" id="t-acc">92.4%</span>
+          </div>
+          <div class="tele-divider"></div>
+          <div class="tele-item">
+            <span class="tele-label">DARK VESSELS FLAGGED</span>
+            <span class="tele-value" id="t-dark">341</span>
+          </div>
+          <div class="tele-divider"></div>
+          <div class="tele-item">
+            <span class="tele-label">SAR SCANS PROCESSED</span>
+            <span class="tele-value" id="t-scans">18,924</span>
+          </div>
+          <div class="tele-divider"></div>
+          <div class="tele-item">
+            <span class="tele-label">MODEL</span>
+            <span class="tele-value mono">QLoRA-QWEN2.5</span>
+          </div>
+        </div>
+
+        <!-- Initial scroll hint -->
+        <div id="scroll-hint">
+          <div class="scroll-cue-line"></div>
+          <span>SCROLL TO EXPLORE</span>
+          <div class="scroll-cue-line"></div>
+        </div>
+
+      </div><!-- /hud-overlay -->
+    </div><!-- /canvas-sticky-wrapper -->
+  </section>
+
+
+  <!-- ABOUT SECTION -->
+  <section id="about" class="content-section">
+    <div class="section-container">
+      <div class="section-tag">INTELLIGENCE OVERVIEW</div>
+      <h2 class="section-title">What is Dark Vessel Detection?</h2>
+      <div class="about-grid">
+        <div class="about-text">
+          <p>Dark vessels — ships that disable or spoof their Automatic Identification System (AIS) transponders — represent one of the most significant threats to maritime security. Whether engaged in illegal fishing, sanctions evasion, or smuggling, these vessels deliberately conceal their movements from conventional tracking systems.</p>
+          <p>Our platform leverages <strong>Synthetic Aperture Radar (SAR) satellite imagery</strong> combined with cutting-edge deep learning to detect vessel signatures regardless of AIS status — piercing through weather, darkness, and deliberate deception.</p>
+        </div>
+        <div class="about-stats">
+          <div class="stat-card glass">
+            <div class="stat-number">92.4<span class="stat-unit">%</span></div>
+            <div class="stat-label">Detection Precision</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-number">0.71</div>
+            <div class="stat-label">mAP Score</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-number">7B</div>
+            <div class="stat-label">Parameter Base Model</div>
+          </div>
+          <div class="stat-card glass">
+            <div class="stat-number">4-bit</div>
+            <div class="stat-label">Quantized QLoRA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ARCHITECTURE SECTION -->
+  <section id="architecture" class="content-section dark-section">
+    <div class="section-container">
+      <div class="section-tag">SYSTEM ARCHITECTURE</div>
+      <h2 class="section-title">How It Works</h2>
+      <div class="pipeline">
+        <div class="pipeline-step glass">
+          <div class="step-icon">???</div>
+          <div class="step-num">01</div>
+          <h3>SAR Acquisition</h3>
+          <p>Sentinel-1 C-band SAR imagery ingested at 10m resolution, covering all-weather, day-night maritime zones.</p>
+        </div>
+        <div class="pipeline-arrow">?</div>
+        <div class="pipeline-step glass">
+          <div class="step-icon">??</div>
+          <div class="step-num">02</div>
+          <h3>Preprocessing</h3>
+          <p>Speckle filtering, radiometric calibration, and CFAR-based background normalization across the radar backscatter.</p>
+        </div>
+        <div class="pipeline-arrow">?</div>
+        <div class="pipeline-step glass">
+          <div class="step-icon">??</div>
+          <div class="step-num">03</div>
+          <h3>AI Detection</h3>
+          <p>YOLOv8-SAR detector locates vessel signatures. QLoRA fine-tuned Qwen2.5-7B classifies context and dark status.</p>
+        </div>
+        <div class="pipeline-arrow">?</div>
+        <div class="pipeline-step glass">
+          <div class="step-icon">??</div>
+          <div class="step-num">04</div>
+          <h3>Intelligence Report</h3>
+          <p>Confidence scores, trajectory prediction, and actionable maritime intelligence delivered to operators.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- METRICS SECTION -->
+  <section id="metrics" class="content-section">
+    <div class="section-container">
+      <div class="section-tag">PERFORMANCE METRICS</div>
+      <h2 class="section-title">Benchmark Results</h2>
+      <div class="metrics-grid">
+        <div class="metric-bar-card glass">
+          <div class="metric-header">
+            <span class="metric-name">Precision</span>
+            <span class="metric-val">92.4%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" style="--fill:92.4%"></div></div>
+        </div>
+        <div class="metric-bar-card glass">
+          <div class="metric-header">
+            <span class="metric-name">Recall</span>
+            <span class="metric-val">88.1%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" style="--fill:88.1%"></div></div>
+        </div>
+        <div class="metric-bar-card glass">
+          <div class="metric-header">
+            <span class="metric-name">F1-Score</span>
+            <span class="metric-val">90.2%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" style="--fill:90.2%"></div></div>
+        </div>
+        <div class="metric-bar-card glass">
+          <div class="metric-header">
+            <span class="metric-name">mAP@0.5</span>
+            <span class="metric-val">71.0%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" style="--fill:71%"></div></div>
+        </div>
+        <div class="metric-bar-card glass">
+          <div class="metric-header">
+            <span class="metric-name">Dark Vessel Accuracy</span>
+            <span class="metric-val">85.6%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" style="--fill:85.6%"></div></div>
+        </div>
+        <div class="metric-bar-card glass">
+          <div class="metric-header">
+            <span class="metric-name">AIS Spoof Detection</span>
+            <span class="metric-val">78.3%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" style="--fill:78.3%"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- FOOTER -->
+  <footer id="contact" class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <span class="logo-icon">?</span>
+        <span class="logo-text">DARK<span class="accent">VESSEL</span></span>
+      </div>
+      <p class="footer-copy">Academic research project. SAR-based maritime AI intelligence.</p>
+      <div class="footer-links">
+        <a href="https://github.com/KathanPatel1310/Dark-Vessel-Detection" target="_blank">GitHub</a>
+        <a href="#">Research Paper</a>
+        <a href="#">Dataset</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="cinematic-scroll.js"></script>
+</body>
+</html>
