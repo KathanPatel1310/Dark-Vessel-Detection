@@ -922,18 +922,35 @@ if os.path.exists(web_dist):
     if os.path.exists(os.path.join(web_dist, "frames")):
         app.mount("/frames", StaticFiles(directory=os.path.join(web_dist, "frames")), name="frames")
 
-    @app.get("/")
+    @app.api_route("/", methods=["GET", "HEAD"])
     def serve_web_index():
         return FileResponse(os.path.join(web_dist, "index.html"))
 
+    @app.get("/favicon.svg")
+    @app.get("/favicon.ico")
+    def serve_favicon():
+        fav = os.path.join(web_dist, "favicon.svg")
+        if os.path.exists(fav):
+            return FileResponse(fav)
+        return JSONResponse({"status": "not found"}, status_code=404)
+
+    @app.get("/icons.svg")
+    def serve_icons():
+        ic = os.path.join(web_dist, "icons.svg")
+        if os.path.exists(ic):
+            return FileResponse(ic)
+        return JSONResponse({"status": "not found"}, status_code=404)
+
     @app.get("/ops")
     @app.get("/operations")
+    @app.get("/ops/{full_path:path}")
     def serve_web_ops():
         return FileResponse(os.path.join(web_dist, "index.html"))
 
     @app.get("/audit")
     @app.get("/methodology")
     @app.get("/dev")
+    @app.get("/dev/{full_path:path}")
     def serve_web_routes():
         return FileResponse(os.path.join(web_dist, "index.html"))
 
