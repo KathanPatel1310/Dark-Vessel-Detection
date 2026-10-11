@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tactical Mission Control | Dark Vessel Intelligence Platform</title>
+  <meta name="description" content="Real-time C4ISR Maritime Domain Awareness operations console for autonomous satellite SAR dark vessel detection and LangGraph multi-agent analysis." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Tactical Console CSS -->
+  <link rel="stylesheet" href="tactical.css" />
+</head>
+<body class="tactical-body">
+
+  <!-- TOP TACTICAL NAVIGATION BAR -->
+  <header id="ops-header">
+    <div class="header-left">
+      <div class="ops-logo">
+        <span class="logo-glyph">◈</span>
+        <span class="logo-title">DARK<span class="accent-cyan">VESSEL</span></span>
+        <span class="ops-badge">C4ISR TACTICAL CONSOLE</span>
+      </div>
+      <div class="aoi-indicator">
+        <span class="aoi-label">SECTOR:</span>
+        <span class="aoi-val">ARABIAN SEA / INDIAN OCEAN (AOI-4)</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="clock-box">
+        <span class="clock-label">ZULU / UTC</span>
+        <span id="utc-clock" class="clock-val mono">--:--:-- Z</span>
+      </div>
+      <div class="sensor-pill-group">
+        <div class="sensor-pill" id="pill-sar">
+          <span class="pill-dot green"></span>
+          <span>SENTINEL-1 C-SAR</span>
+        </div>
+        <div class="sensor-pill" id="pill-ais">
+          <span class="pill-dot green"></span>
+          <span>AIS PARQUET (103k)</span>
+        </div>
+        <div class="sensor-pill" id="pill-ofac">
+          <span class="pill-dot green"></span>
+          <span>OFAC/UN INDEX (1.8k)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <a href="index.html" class="btn-briefing">
+        <span class="btn-icon">◂</span>
+        <span>Executive Briefing</span>
+      </a>
+      <div class="system-status">
+        <span class="status-radar-sweep"></span>
+        <span class="status-text">SYSTEM ONLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN THREE-COLUMN WORKSPACE -->
+  <main id="ops-workspace">
+
+    <!-- LEFT PANEL: MISSION CONTROLS & INGESTION -->
+    <aside id="panel-left" class="console-card">
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <span class="panel-icon">⚙</span>
+          <h2>MISSION INGESTION & CONTROLS</h2>
+        </div>
+        <span class="panel-tag">PILLAR 1 & 2</span>
+      </div>
+
+      <div class="panel-scroll-content">
+        <!-- Preset Scenario Selector -->
+        <div class="control-group">
+          <label for="scenario-select" class="control-label">OPERATIONAL BENCHMARK SCENARIO</label>
+          <select id="scenario-select" class="form-select mono">
+            <option value="SCN-DARK-001" selected>[SCN-01] Deliberate Dark Supertanker Evasion (245m)</option>
+            <option value="SCN-SANC-002">[SCN-02] Blacklisted Tanker in STS Choke Point (ARTAVIL)</option>
+            <option value="SCN-NORM-003">[SCN-03] Correlated Commercial Cargo Transit (Maersk)</option>
+            <option value="SCN-EXEM-004">[SCN-04] Artisanal Fishing Craft (SOLAS V/19 Exempt)</option>
+            <option value="SCN-DEGR-005">[SCN-05] Sensor Blackout & Degradation Simulation</option>
+          </select>
+          <p class="control-hint" id="scenario-desc">245m crude carrier detected by radar with zero transponder pings in international shipping lane.</p>
+        </div>
+
+        <!-- Telemetry Degradation Toggles -->
+        <div class="control-group">
+          <div class="toggle-header">
+            <span class="control-label">FAULT INJECTION / DEGRADATION</span>
+            <span class="degrade-alert" id="degrade-indicator">NORMAL SENSORS</span>
+          </div>
+          <div class="toggle-row">
+            <label class="switch-container">
+              <input type="checkbox" id="toggle-cut-ais" />
+              <span class="switch-slider"></span>
+            </label>
+            <div class="switch-meta">
+              <span class="switch-title">Cut AIS Transponder Stream</span>
+              <span class="switch-sub">Simulates satellite blind zone / jamming</span>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <label class="switch-container">
+              <input type="checkbox" id="toggle-cut-sanctions" />
+              <span class="switch-slider"></span>
+            </label>
+            <div class="switch-meta">
+              <span class="switch-title">Sever Sanctions Registry Connection</span>
+              <span class="switch-sub">Simulates external API outage / cached mode</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom SAR Radar Chip Upload -->
+        <div class="control-group">
+          <label class="control-label">CUSTOM RADAR CHIP INGESTION</label>
+          <div class="drop-zone" id="radar-dropzone">
+            <input type="file" id="chip-file-input" accept=".npy,.jpg,.png" class="file-input-hidden" />
+            <div class="drop-content">
+              <span class="drop-icon">⤓</span>
+              <span class="drop-text">Drag & drop Sentinel-1 Chip or <em>Browse</em></span>
+              <span class="drop-sub mono">Supports .NPY Dual-Pol / GeoTIFF / JPEG</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Properties Readout -->
+        <div class="control-group">
+          <label class="control-label">ACTIVE CONTACT TELEMETRY</label>
+          <div class="telemetry-grid">
+            <div class="tele-box">
+              <span class="tele-lbl">TARGET ID</span>
+              <span class="tele-val mono" id="readout-target-id">SAR-DARK-001</span>
+            </div>
+            <div class="tele-box">
+              <span class="tele-lbl">RADAR CONF</span>
+              <span class="tele-val mono text-cyan" id="readout-radar-conf">0.94</span>
+            </div>
+            <div class="tele-box">
+              <span class="tele-lbl">COORDINATES</span>
+              <span class="tele-val mono" id="readout-coords">21.38°N, 64.18°E</span>
+            </div>
+            <div class="tele-box">
+              <span class="tele-lbl">EST. LENGTH</span>
+              <span class="tele-val mono" id="readout-length">245.0 m</span>
+            </div>
+            <div class="tele-box">
+              <span class="tele-lbl">BEAM WIDTH</span>
+              <span class="tele-val mono" id="readout-beam">42.0 m</span>
+            </div>
+            <div class="tele-box">
+              <span class="tele-lbl">RADAR TCR</span>
+              <span class="tele-val mono text-emerald" id="readout-tcr">+18.4 dB</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Execution Button -->
+        <button id="btn-run-investigation" class="btn-execute">
+          <span class="radar-pulse"></span>
+          <span class="btn-text">RUN AUTONOMOUS INVESTIGATION</span>
+        </button>
+      </div>
+    </aside>
+
+
+    <!-- CENTER STAGE: DUAL-PANE GEOSPATIAL & RADAR VIEWER -->
+    <section id="panel-center">
+      
+      <!-- TOP PANE: TACTICAL LEAFLET MAP -->
+      <div id="map-wrapper" class="console-card">
+        <div class="pane-header">
+          <div class="pane-title-row">
+            <span class="panel-icon text-cyan">🗺</span>
+            <h2>ARABIAN SEA GEOSPATIAL RADAR SWEEP</h2>
+          </div>
+          <div class="map-legend">
+            <span class="leg-item"><span class="leg-dot india-eez"></span> India EEZ</span>
+            <span class="leg-item"><span class="leg-dot oman-eez"></span> Oman EEZ</span>
+            <span class="leg-item"><span class="leg-dot sts-zone"></span> STS Corridor</span>
+            <span class="leg-item"><span class="leg-dot dead-reckoning"></span> Dead-Reckoning (+24h)</span>
+          </div>
+        </div>
+        <div id="tactical-map"></div>
+      </div>
+
+      <!-- BOTTOM PANE: HIGH-RESOLUTION SAR RADAR CHIP INSPECTOR -->
+      <div id="radar-inspector-wrapper" class="console-card">
+        <div class="pane-header">
+          <div class="pane-title-row">
+            <span class="panel-icon text-emerald">📡</span>
+            <h2>SENTINEL-1 SAR MORPHOLOGY & RADIOMETRY</h2>
+          </div>
+          <div class="chip-view-toggles">
+            <button class="toggle-pill active" id="btn-view-composite">Composite</button>
+            <button class="toggle-pill" id="btn-view-vv">VV Polarization</button>
+            <button class="toggle-pill" id="btn-view-mask">Target Mask & Clutter</button>
+          </div>
+        </div>
+        <div class="radar-inspector-body">
+          <div class="canvas-container">
+            <canvas id="radar-canvas" width="460" height="230"></canvas>
+            <div class="crosshair-h"></div>
+            <div class="crosshair-v"></div>
+          </div>
+          <div class="inspector-hud mono">
+            <div class="hud-stat">
+              <span class="hud-lbl">TCR (Target-to-Clutter)</span>
+              <span class="hud-val text-emerald" id="hud-tcr">+18.4 dB</span>
+            </div>
+            <div class="hud-stat">
+              <span class="hud-lbl">Hull Aspect Ratio (L/B)</span>
+              <span class="hud-val" id="hud-aspect">5.83</span>
+            </div>
+            <div class="hud-stat">
+              <span class="hud-lbl">Radar Footprint Area</span>
+              <span class="hud-val" id="hud-area">7,717 m²</span>
+            </div>
+            <div class="hud-stat">
+              <span class="hud-lbl">Isoperimetric Compactness</span>
+              <span class="hud-val" id="hud-compact">3.42 (High Vessel Anisotropy)</span>
+            </div>
+            <div class="hud-stat">
+              <span class="hud-lbl">Spatial Moment Eccentricity</span>
+              <span class="hud-val text-cyan" id="hud-eccentricity">0.985 (Elongated Hull)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- RIGHT PANEL: LANGGRAPH AUTONOMOUS AGENT REASONING TRACE -->
+    <aside id="panel-right" class="console-card">
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <span class="panel-icon text-purple">🧠</span>
+          <h2>AUTONOMOUS AGENT REASONING TRACE</h2>
+        </div>
+        <span class="panel-tag">LANGGRAPH PREGEL</span>
+      </div>
+
+      <!-- Human-in-the-Loop Interruption Alert (Conditional) -->
+      <div id="hitl-alert-box" class="hitl-banner hidden">
+        <div class="hitl-header">
+          <span class="hitl-pulse"></span>
+          <span class="hitl-title">OPERATOR REVIEW REQUIRED (HITL GATE)</span>
+        </div>
+        <p class="hitl-body">High-risk deliberate evasion detected (Anomaly Score &ge; 0.70). Execution paused at <code>HumanReviewNode</code>.</p>
+        <button id="btn-open-hitl-modal" class="btn-hitl-action">INSPECT & AUTHORIZE DISPATCH</button>
+      </div>
+
+      <!-- Multi-Agent Trace Pipeline -->
+      <div id="agent-trace-container" class="trace-scroll">
+        <div class="trace-empty">Click "RUN AUTONOMOUS INVESTIGATION" to stream the LangGraph multi-agent execution pipeline.</div>
+      </div>
+    </aside>
+
+  </main>
+
+
+  <!-- BOTTOM DRAWER: STRUCTURED MARITIME INTELLIGENCE BULLETIN -->
+  <footer id="ops-drawer" class="console-card">
+    <div class="drawer-header" id="drawer-toggle-btn">
+      <div class="drawer-title-group">
+        <span class="drawer-arrow">▲</span>
+        <span class="drawer-title">STRUCTURED MARITIME INTELLIGENCE BULLETIN</span>
+        <span class="threat-pill threat-neutral" id="bulletin-threat-pill">THREAT TIER: STANDBY</span>
+        <span class="bulletin-id mono" id="bulletin-report-id">MAR-INTEL-2026-STANDBY</span>
+      </div>
+      <div class="drawer-actions">
+        <button class="btn-action-sm" id="btn-inspect-features">
+          <span>📊</span> 35-Feature Vector
+        </button>
+        <button class="btn-action-sm" id="btn-copy-json">
+          <span>📋</span> Copy Validated JSON
+        </button>
+        <button class="btn-action-sm btn-export-pdf" id="btn-export-dossier">
+          <span>📥</span> Export Intelligence Dossier
+        </button>
+      </div>
+    </div>
+
+    <div class="drawer-body" id="drawer-content">
+      <div class="bulletin-grid">
+        <div class="bulletin-col">
+          <h4 class="b-title">EXECUTIVE INTELLIGENCE SYNTHESIS</h4>
+          <p class="b-text" id="b-executive-summary">
+            Awaiting multi-agent investigation dispatch. System primed across Sentinel-1 C-SAR radar, Snappy GeoParquet commercial AIS tracking, and official U.S. OFAC & UN Security Council watchlists.
+          </p>
+          <div class="b-statutes-box">
+            <span class="b-subhead">STATUTORY CITATIONS & TREATY VIOLATIONS:</span>
+            <div class="statute-tags" id="b-statute-tags">
+              <span class="tag-neutral mono">Awaiting Screening</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bulletin-col">
+          <h4 class="b-title">ACTIONABLE INTERDICTION DIRECTIVES</h4>
+          <ul class="recommendation-list" id="b-recommendations">
+            <li>Select an operational scenario and run autonomous investigation.</li>
+          </ul>
+
+          <div class="b-forecast-summary">
+            <span class="b-subhead">KINEMATIC TRAJECTORY DEAD-RECKONING (+24h):</span>
+            <div class="forecast-pills mono" id="b-forecast-pills">
+              <div class="f-pill">+6h: Projected 20.88°N, 63.25°E (±22.3 km)</div>
+              <div class="f-pill">+12h: Projected 20.38°N, 62.32°E (±44.7 km)</div>
+              <div class="f-pill">+24h: Projected 19.38°N, 60.46°E (±89.3 km)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- MODAL: HUMAN-IN-THE-LOOP OPERATOR DISPOSITION -->
+  <div id="hitl-modal" class="modal-backdrop hidden">
+    <div class="modal-box console-card">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <span class="modal-icon text-amber">⚠</span>
+          <h3>HUMAN-IN-THE-LOOP OPERATOR AUDIT GATE</h3>
+        </div>
+        <button class="modal-close" id="btn-close-hitl-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="hitl-summary-banner">
+          <div class="hitl-meta-row">
+            <span>TARGET: <strong id="modal-target-id" class="mono text-cyan">SAR-DARK-001</strong></span>
+            <span>CLASSIFICATION: <strong id="modal-dark-class" class="mono text-red">DELIBERATE_DARK_EVASION</strong></span>
+            <span>ANOMALY: <strong id="modal-anomaly-score" class="mono text-red">0.74</strong></span>
+          </div>
+        </div>
+        <p class="modal-instruction">
+          As designated Coast Guard Watch Officer / Intelligence Analyst, record your audit disposition before legal intelligence bulletin dissemination:
+        </p>
+
+        <label class="control-label">OPERATOR AUDIT NOTES & TACTICAL DIRECTIVE</label>
+        <textarea id="hitl-notes-input" class="hitl-textarea mono" rows="3" placeholder="e.g. Target confirmed high-priority dark crude carrier. Coast Guard Sector 4 alerted for aerial reconnaissance overflight..."></textarea>
+
+        <div class="hitl-button-row">
+          <button class="btn-hitl-submit btn-approve" id="btn-hitl-approve">
+            <span>✓</span> AUTHORIZE INTERDICTION DISPATCH
+          </button>
+          <button class="btn-hitl-submit btn-override" id="btn-hitl-override">
+            <span>⟳</span> OVERRIDE TO BENIGN MONITORING
+          </button>
+          <button class="btn-hitl-submit btn-escalate" id="btn-hitl-escalate">
+            <span>▲</span> ESCALATE TO NAVAL TASK FORCE
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL: 35-DOMAIN FEATURE VECTOR INSPECTOR -->
+  <div id="features-modal" class="modal-backdrop hidden">
+    <div class="modal-box modal-lg console-card">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <span class="modal-icon text-cyan">📊</span>
+          <h3>PILLAR 1: 35-DOMAIN FEATURE VECTOR INSPECTOR</h3>
+        </div>
+        <button class="modal-close" id="btn-close-features-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-scroll-table">
+          <table class="features-table mono" id="features-table">
+            <thead>
+              <tr>
+                <th>DOMAIN</th>
+                <th>FEATURE NAME</th>
+                <th>VALUE</th>
+                <th>PHYSICAL INTERPRETATION</th>
+              </tr>
+            </thead>
+            <tbody id="features-table-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Tactical Console JS Controller -->
+  <script src="tactical.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "scenario_id": "SCN-NORM-003",
+  "scenario_name": "Correlated Commercial Cargo Transit",
+  "scenario_type": "NORMAL_CORRELATED",
+  "description": "Legitimate container carrier broadcasting valid AIS matching radar dimensions and heading along commercial navigation corridor.",
+  "expected_threat_tier": "LOW",
+  "expected_classification": "CORRELATED_BENIGN",
+  "provenance": {
+    "radar": "DERIVED",
+    "ais": "REAL",
+    "fusion": "DERIVED",
+    "source": "Commercial AIS Feed + Sentinel-1 Radar"
+  },
+  "sar_detection": {
+    "detection_id": "SAR-DET-2026-NORM-03",
+    "scene_id": "S1A_IW_GRDH_1SDV_20260920_MUMBAI_OUTER",
+    "timestamp": "2026-09-20T08:15:00Z",
+    "latitude": 19.4500,
+    "longitude": 71.8500,
+    "length_m": 165.0,
+    "width_m": 27.5,
+    "aspect_ratio": 6.00,
+    "heading_deg": 185.0,
+    "confidence": 0.98,
+    "sensor": "Sentinel-1 C-SAR",
+    "polarization": "VV+VH"
+  },
+  "ais_observation": {
+    "mmsi": "419001051",
+    "imo": "9345124",
+    "vessel_name": "MAERSK KARACHI",
+    "ship_type": "Cargo",
+    "latitude": 19.4520,
+    "longitude": 71.8510,
+    "sog": 14.8,
+    "cog": 185.0,
+    "heading": 185.0,
+    "timestamp": "2026-09-20T08:14:00Z"
+  },
+  "historical_gaps": []
+}

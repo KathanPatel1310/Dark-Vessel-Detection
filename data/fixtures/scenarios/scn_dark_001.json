@@ -1,0 +1,42 @@
+{
+  "scenario_id": "SCN-DARK-001",
+  "scenario_name": "Deliberate Dark Supertanker Evasion",
+  "scenario_type": "DELIBERATE_DARK_EVASION",
+  "description": "A 245-meter crude oil tanker detected by Sentinel-1 radar 280km offshore in international waters with zero active AIS transponder signals.",
+  "expected_threat_tier": "HIGH",
+  "expected_classification": "DELIBERATE_DARK_EVASION",
+  "provenance": {
+    "radar": "DERIVED",
+    "ais": "UNAVAILABLE",
+    "classification": "HEURISTIC",
+    "source": "Sentinel-1 Synthetic SAR Scene S1A_IW_GRDH_1SDV_20260920_ARABIAN_SEA"
+  },
+  "sar_detection": {
+    "detection_id": "SAR-DET-2026-DARK-01",
+    "scene_id": "S1A_IW_GRDH_1SDV_20260920_ARABIAN_SEA",
+    "timestamp": "2026-09-20T12:00:00Z",
+    "latitude": 21.3800,
+    "longitude": 64.1800,
+    "length_m": 245.0,
+    "width_m": 42.0,
+    "aspect_ratio": 5.83,
+    "heading_deg": 240.0,
+    "confidence": 0.94,
+    "sensor": "Sentinel-1 C-SAR",
+    "polarization": "VV+VH"
+  },
+  "ais_observation": null,
+  "historical_gaps": [
+    {
+      "mmsi": "UNKNOWN-DARK",
+      "gap_start": "2026-09-18T12:00:00Z",
+      "gap_end": "2026-09-20T12:00:00Z",
+      "duration_hours": 48.0,
+      "start_lat": 22.10,
+      "start_lon": 65.50,
+      "end_lat": 21.38,
+      "end_lon": 64.18,
+      "is_suspicious": true
+    }
+  ]
+}

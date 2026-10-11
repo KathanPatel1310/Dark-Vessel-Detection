@@ -188,13 +188,15 @@ def assess_risk_and_forecast(
     sanctions_result: SanctionsResult,
     geo_context: GeoContext,
     heading_deg: Optional[float] = None,
-    speed_knots: Optional[float] = None
+    speed_knots: Optional[float] = None,
+    degradation_notes: Optional[List[str]] = None
 ) -> Tuple[RiskAssessment, PredictiveForecast]:
     """Computes quantitative risk metrics and dead-reckoning trajectory forecast."""
     risk_assessment = MaritimeRiskScorer.compute_risk_assessment(
         features=features,
         sanctions_result=sanctions_result,
-        geo_context=geo_context
+        geo_context=geo_context,
+        degradation_notes=degradation_notes
     )
 
     sar = features.sar
@@ -233,9 +235,9 @@ def generate_structured_report(
     # Determine overall threat tier
     if risk_assessment.overall_anomaly_score >= 0.80 or sanctions_result.is_sanctioned:
         threat_tier = "SEVERE"
-    elif risk_assessment.overall_anomaly_score >= 0.60:
+    elif risk_assessment.overall_anomaly_score >= 0.60 or risk_assessment.dark_vessel_classification == "DELIBERATE_DARK_EVASION":
         threat_tier = "HIGH"
-    elif risk_assessment.overall_anomaly_score >= 0.35:
+    elif risk_assessment.overall_anomaly_score >= 0.35 or risk_assessment.dark_vessel_classification == "AIS_SHADOW_ZONE":
         threat_tier = "MEDIUM"
     else:
         threat_tier = "LOW"

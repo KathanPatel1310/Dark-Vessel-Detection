@@ -1,0 +1,30 @@
+{
+  "scenario_id": "SCN-DEGR-005",
+  "scenario_name": "Sensor Blackout & Degraded Evidence",
+  "scenario_type": "DEGRADED_EVIDENCE",
+  "description": "Simulates satellite transponder loss and registry server timeout. Demonstrates multi-agent graceful degradation without system failure.",
+  "expected_threat_tier": "MEDIUM",
+  "expected_classification": "AIS_SHADOW_ZONE",
+  "provenance": {
+    "radar": "DERIVED",
+    "ais": "UNAVAILABLE",
+    "registry": "DEGRADED",
+    "source": "Simulated Degraded Sensor Network"
+  },
+  "sar_detection": {
+    "detection_id": "SAR-DET-2026-DEGR-05",
+    "scene_id": "S1A_IW_GRDH_1SDV_20260920_CENTRAL_BASIN",
+    "timestamp": "2026-09-20T16:00:00Z",
+    "latitude": 17.5000,
+    "longitude": 68.2000,
+    "length_m": 140.0,
+    "width_m": 23.0,
+    "aspect_ratio": 6.09,
+    "heading_deg": 310.0,
+    "confidence": 0.85,
+    "sensor": "Sentinel-1 C-SAR",
+    "polarization": "VV+VH"
+  },
+  "ais_observation": null,
+  "historical_gaps": []
+}

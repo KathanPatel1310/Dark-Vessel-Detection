@@ -1,0 +1,41 @@
+{
+  "scenario_id": "SCN-SANC-002",
+  "scenario_name": "Blacklisted Tanker in STS Choke Point",
+  "scenario_type": "SANCTIONED_VESSEL",
+  "description": "Confirmed match on official U.S. OFAC SDN list (IMO 9187629 / ARTAVIL) loitering inside the Gulf of Oman STS transshipment corridor.",
+  "expected_threat_tier": "CRITICAL",
+  "expected_classification": "CORRELATED_BENIGN",
+  "provenance": {
+    "radar": "DERIVED",
+    "ais": "REAL",
+    "sanctions": "REAL",
+    "source": "OFAC SDN sdn.xml + AIS snapshot"
+  },
+  "sar_detection": {
+    "detection_id": "SAR-DET-2026-SANC-02",
+    "scene_id": "S1A_IW_GRDH_1SDV_20260920_GULF_OMAN",
+    "timestamp": "2026-09-20T14:30:00Z",
+    "latitude": 24.1500,
+    "longitude": 58.4500,
+    "length_m": 274.0,
+    "width_m": 48.0,
+    "aspect_ratio": 5.71,
+    "heading_deg": 145.0,
+    "confidence": 0.96,
+    "sensor": "Sentinel-1 C-SAR",
+    "polarization": "VV+VH"
+  },
+  "ais_observation": {
+    "mmsi": "677002001",
+    "imo": "9187629",
+    "vessel_name": "ARTAVIL",
+    "ship_type": "Tanker",
+    "latitude": 24.1600,
+    "longitude": 58.4600,
+    "sog": 3.2,
+    "cog": 140.0,
+    "heading": 145.0,
+    "timestamp": "2026-09-20T14:25:00Z"
+  },
+  "historical_gaps": []
+}

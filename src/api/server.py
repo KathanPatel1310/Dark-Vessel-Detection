@@ -13,6 +13,9 @@ import os
 import io
 import json
 import math
+import glob
+import hashlib
+import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -20,7 +23,7 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 # Core system imports
@@ -30,7 +33,14 @@ from src.schemas.ais import AISObservation, AISGap
 from src.schemas.state import MaritimeAgentState, AgentTraceEntry
 from src.schemas.geospatial import GeoContext
 from src.schemas.sanctions import SanctionsResult, SanctionMatch
-from src.schemas.features import EngineeredFeatures
+from src.schemas.features import (
+    SARFeatures,
+    AISFeatures,
+    GeospatialFeatures,
+    HistoricalFeatures,
+    FusionFeatures,
+    EngineeredFeatures,
+)
 from src.schemas.intelligence import (
     RiskAssessment,
     PredictiveForecast,
@@ -73,6 +83,33 @@ app.add_middleware(
 
 # In-memory thread checkpoint store for interactive HITL sessions
 HITL_SESSIONS: Dict[str, Dict[str, Any]] = {}
+
+# In-memory cache for compiled intelligence reports
+GENERATED_REPORTS: Dict[str, Any] = {}
+
+# Hash-chained append-only audit ledger
+AUDIT_LEDGER: List[Dict[str, Any]] = []
+
+def append_to_audit_ledger(action: str, details: Dict[str, Any], operator: str = "SYSTEM") -> Dict[str, Any]:
+    prev_hash = AUDIT_LEDGER[-1]["hash"] if AUDIT_LEDGER else "0" * 64
+    idx = len(AUDIT_LEDGER)
+    ts = datetime.now(timezone.utc).isoformat()
+    raw = f"{idx}:{ts}:{action}:{operator}:{json.dumps(details, sort_keys=True, default=str)}:{prev_hash}"
+    entry_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    entry = {
+        "index": idx,
+        "timestamp": ts,
+        "action": action,
+        "operator": operator,
+        "details": details,
+        "prev_hash": prev_hash,
+        "hash": entry_hash
+    }
+    AUDIT_LEDGER.append(entry)
+    return entry
+
+# Initialize genesis audit block
+append_to_audit_ledger("GENESIS_BLOCK", {"message": "Maritime Intelligence Audit Ledger Initialized", "system": "DVD-MDA"})
 
 
 # ---------------------------------------------------------------------------
@@ -285,11 +322,31 @@ BENCHMARK_SCENARIOS = [
 ]
 
 
+FIXTURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "fixtures", "scenarios"))
+
+def load_scenario_fixtures() -> List[Dict[str, Any]]:
+    """Loads all operational scenario fixtures from disk, with fallback to benchmark defaults."""
+    if os.path.exists(FIXTURES_DIR):
+        files = sorted(glob.glob(os.path.join(FIXTURES_DIR, "*.json")))
+        if files:
+            loaded = []
+            for fpath in files:
+                try:
+                    with open(fpath, "r", encoding="utf-8") as f:
+                        loaded.append(json.load(f))
+                except Exception as e:
+                    logger.error(f"Failed to load fixture {fpath}: {e}")
+            if loaded:
+                return loaded
+    return BENCHMARK_SCENARIOS
+
+
 # ---------------------------------------------------------------------------
 # API Endpoints
 # ---------------------------------------------------------------------------
 
 @app.get("/api/health")
+@app.get("/health")
 def get_health():
     """System health check and live production asset statistics."""
     sanctions_db = get_sanctions_db(allow_fallback=True)
@@ -311,10 +368,149 @@ def get_health():
     }
 
 
+@app.get("/api/meta")
+@app.get("/meta")
+def get_meta():
+    """Returns platform metadata, model fingerprints, feature schemas, and citation catalog."""
+    features_schema = {
+        "sar": list(SARFeatures.model_fields.keys()),
+        "ais": list(AISFeatures.model_fields.keys()),
+        "geospatial": list(GeospatialFeatures.model_fields.keys()),
+        "historical": list(HistoricalFeatures.model_fields.keys()),
+        "fusion": list(FusionFeatures.model_fields.keys()),
+    }
+    feature_count = sum(len(fields) for fields in features_schema.values())
+
+    git_sha = "unknown"
+    try:
+        git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        pass
+
+    model_hash = "uncalibrated"
+    model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "models", "sar_detector", "unquantized", "best.pt"))
+    if os.path.exists(model_path):
+        try:
+            with open(model_path, "rb") as f:
+                model_hash = hashlib.sha256(f.read()).hexdigest()
+        except Exception:
+            pass
+
+    metrics_data = {}
+    reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "reports"))
+    for rname in ["real_feature_ablation_results.json", "feature_ablation_results.json", "agent_scenario_results.json"]:
+        rpath = os.path.join(reports_dir, rname)
+        if os.path.exists(rpath):
+            try:
+                with open(rpath, "r", encoding="utf-8") as f:
+                    metrics_data[rname.replace(".json", "")] = json.load(f)
+            except Exception:
+                pass
+
+    return {
+        "system_name": "DVD-MDA (Maritime Domain Awareness)",
+        "version": "1.0.0",
+        "git_sha": git_sha,
+        "model_hash": model_hash,
+        "feature_count": feature_count,
+        "feature_schema": features_schema,
+        "sanctions_publish_dates": {
+            "ofac_sdn": "2024-03-15",
+            "un_consolidated": "2024-03-20"
+        },
+        "eez_coverage_bbox": {
+            "min_lat": 10.0,
+            "max_lat": 26.0,
+            "min_lon": 50.0,
+            "max_lon": 78.0,
+            "coverage_region": "Arabian Sea sovereign economic zones (India, Pakistan, Oman)"
+        },
+        "provenance_legend": {
+            "REAL": "Empirical observation directly parsed from official source files (OFAC SDN sdn.xml, UN XML, official GeoJSON)",
+            "DERIVED": "Mathematically calculated through deterministic physics or feature pipelines (haversine distances, bounding contours, circular heading variance)",
+            "SYNTHETIC": "Procedurally generated or simulated test scenario fixture (synthetic radar chips, simulated AIS telemetry)",
+            "HEURISTIC": "Probabilistic or rule-based expert system classification based on international maritime conventions (SOLAS thresholds, anomaly scoring)",
+            "UNAVAILABLE": "Sensor or registry feed uncontactable or transponder signal absent"
+        },
+        "citation_catalog": [
+            {
+                "id": "SOLAS_V_19",
+                "title": "SOLAS Chapter V Regulation 19",
+                "scope": "Carriage requirements for shipborne navigational systems and equipment",
+                "statute": "Mandates continuous AIS broadcasts for all commercial vessels >=300 GT on international voyages and all cargo vessels >=500 GT on domestic routes.",
+                "link": "https://www.imo.org/en/OurWork/Safety/Pages/AIS.aspx"
+            },
+            {
+                "id": "UNCLOS_ART_73",
+                "title": "UNCLOS Article 73",
+                "scope": "Enforcement of laws and regulations of the coastal State",
+                "statute": "The coastal State may, in the exercise of its sovereign rights to explore, exploit, conserve and manage the living resources in the exclusive economic zone, take such measures, including boarding, inspection, arrest and judicial proceedings, as may be necessary.",
+                "link": "https://www.un.org/depts/los/convention_agreements/texts/unclos/part5.htm"
+            },
+            {
+                "id": "UNCLOS_ART_92",
+                "title": "UNCLOS Article 92",
+                "scope": "Status of ships",
+                "statute": "Ships shall sail under the flag of one State only and, save in exceptional cases expressly provided for in international treaties or in this Convention, shall be subject to its exclusive jurisdiction on the high seas.",
+                "link": "https://www.un.org/depts/los/convention_agreements/texts/unclos/part7.htm"
+            },
+            {
+                "id": "UNCLOS_ART_110",
+                "title": "UNCLOS Article 110",
+                "scope": "Right of visit on the high seas",
+                "statute": "Authorizes warships/state vessels to board foreign merchant ships reasonably suspected of engaging in piracy, slave trade, unauthorized broadcasting, or sailing without nationality.",
+                "link": "https://www.un.org/depts/los/convention_agreements/texts/unclos/part7.htm"
+            },
+            {
+                "id": "OFAC_IEEPA",
+                "title": "OFAC SDN / IEEPA Statutory Sanctions",
+                "scope": "International Emergency Economic Powers Act (50 U.S.C. 1701)",
+                "statute": "Prohibits transactions and requires blocking of property and interests in property of designated entities involved in illicit petroleum exports and evasion schemes.",
+                "link": "https://ofac.treasury.gov/specially-designated-nationals-list-data-formats-data-schemas"
+            }
+        ],
+        "metrics": metrics_data
+    }
+
+
+@app.get("/api/geospatial/eez")
+def get_eez_geojson():
+    """Returns official UNCLOS Arabian Sea sovereign EEZ polygons."""
+    geojson_path = "data/raw/geospatial/arabian_sea_eez.geojson"
+    if os.path.exists(geojson_path):
+        with open(geojson_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"type": "FeatureCollection", "features": []}
+
+
 @app.get("/api/scenarios", response_model=List[Dict[str, Any]])
+@app.get("/scenarios", response_model=List[Dict[str, Any]])
 def get_scenarios():
     """Returns the 5 benchmark operational maritime surveillance scenarios."""
-    return BENCHMARK_SCENARIOS
+    return load_scenario_fixtures()
+
+
+@app.get("/api/scenarios/{scenario_id}")
+@app.get("/scenarios/{scenario_id}")
+def get_scenario_by_id(scenario_id: str):
+    """Retrieves an individual scenario fixture by ID."""
+    scenarios = load_scenario_fixtures()
+    target = next((s for s in scenarios if s.get("scenario_id", "").lower() == scenario_id.lower()), None)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found.")
+    return target
+
+
+@app.get("/api/audit")
+@app.get("/audit")
+def get_audit_ledger():
+    """Returns the immutable hash-chained append-only audit ledger."""
+    return {
+        "status": "SUCCESS",
+        "total_entries": len(AUDIT_LEDGER),
+        "latest_hash": AUDIT_LEDGER[-1]["hash"] if AUDIT_LEDGER else None,
+        "ledger": AUDIT_LEDGER
+    }
 
 
 @app.post("/api/detect/sar")
@@ -503,7 +699,26 @@ def run_autonomous_investigation(req: InvestigationRequest):
     _, forecast = assess_risk_and_forecast(
         features=features,
         sanctions_result=sanctions_res,
-        geo_context=geo_context
+        geo_context=geo_context,
+        degradation_notes=final_state_dict.get("degradation_notes", []) if isinstance(final_state_dict, dict) else final_state_dict.degradation_notes
+    )
+
+    # Cache report and record audit block
+    rep_dict = report.model_dump() if hasattr(report, "model_dump") else (report if isinstance(report, dict) else None)
+    if rep_dict:
+        rep_id = rep_dict.get("report_id", mission_id)
+        GENERATED_REPORTS[rep_id] = rep_dict
+        GENERATED_REPORTS[mission_id] = rep_dict
+
+    append_to_audit_ledger(
+        action="INVESTIGATION_COMPLETED",
+        details={
+            "mission_id": mission_id,
+            "target_detection_id": req.sar_detection.detection_id,
+            "threat_tier": rep_dict.get("threat_tier") if rep_dict else "UNKNOWN",
+            "dark_vessel_classification": risk_assessment.dark_vessel_classification if hasattr(risk_assessment, "dark_vessel_classification") else (risk_assessment.get("dark_vessel_classification") if isinstance(risk_assessment, dict) else None),
+            "human_in_the_loop_flag": hitl_flag
+        }
     )
 
     return {
@@ -514,13 +729,21 @@ def run_autonomous_investigation(req: InvestigationRequest):
         "execution_trace": exec_trace,
         "risk_assessment": risk_assessment.model_dump() if hasattr(risk_assessment, "model_dump") else risk_assessment,
         "forecast": forecast.model_dump() if hasattr(forecast, "model_dump") else forecast,
-        "final_report": report.model_dump() if hasattr(report, "model_dump") else (report if isinstance(report, dict) else None),
+        "final_report": rep_dict,
         "geo_context": geo_context.model_dump() if hasattr(geo_context, "model_dump") else geo_context,
         "degradation_notes": final_state_dict.get("degradation_notes", []) if isinstance(final_state_dict, dict) else final_state_dict.degradation_notes
     }
 
 
+@app.post("/investigate")
+def run_autonomous_investigation_alias(req: InvestigationRequest):
+    return run_autonomous_investigation(req)
+
+
 @app.post("/api/hitl/submit")
+@app.post("/api/hitl/resume")
+@app.post("/hitl/submit")
+@app.post("/hitl/resume")
 def submit_hitl_decision(req: HITLSubmitRequest):
     """
     Operator disposition submission for Human-in-the-Loop review checkpoints.
@@ -553,12 +776,126 @@ def submit_hitl_decision(req: HITLSubmitRequest):
         "notes": f"Operator Audit Record: {req.audit_notes}"
     }
 
+    append_to_audit_ledger(
+        action=f"HITL_DISPOSITION_{req.analyst_disposition}",
+        details={
+            "session_id": req.session_id,
+            "disposition": req.analyst_disposition,
+            "audit_notes": req.audit_notes,
+            "overridden_classification": req.override_classification
+        },
+        operator="OPERATOR_HUMAN"
+    )
+
     return {
         "status": "SUCCESS",
         "session_id": req.session_id,
         "disposition": req.analyst_disposition,
         "audit_trace": new_trace_entry,
         "message": f"Operator disposition '{req.analyst_disposition}' successfully committed to audit registry."
+    }
+
+
+@app.get("/api/report/{report_id}/export")
+@app.get("/report/{report_id}/export")
+def export_report(report_id: str, format: str = Query("json")):
+    """Exports structured maritime intelligence reports in JSON, GeoJSON, or print-ready format."""
+    rep = GENERATED_REPORTS.get(report_id)
+    if not rep:
+        rep = next((r for r in GENERATED_REPORTS.values() if r.get("mission_id") == report_id or r.get("report_id") == report_id), None)
+    if not rep:
+        raise HTTPException(status_code=404, detail=f"Intelligence report '{report_id}' not found.")
+
+    raw_json = json.dumps(rep, sort_keys=True, default=str)
+    checksum = hashlib.sha256(raw_json.encode("utf-8")).hexdigest()
+
+    if format.lower() == "geojson":
+        forecast = rep.get("predictive_forecast", {})
+        waypoints = forecast.get("extrapolated_waypoints", [])
+        features = []
+        for wp in waypoints:
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [wp.get("projected_lon", 0.0), wp.get("projected_lat", 0.0)]
+                },
+                "properties": {
+                    "projection_hours": wp.get("projection_hours"),
+                    "uncertainty_radius_km": wp.get("uncertainty_radius_km"),
+                    "timestamp": wp.get("projected_timestamp")
+                }
+            })
+        return {
+            "type": "FeatureCollection",
+            "report_id": report_id,
+            "checksum_sha256": checksum,
+            "features": features
+        }
+
+    if format.lower() in ["pdf", "html"]:
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CLASSIFIED MARITIME INTELLIGENCE BULLETIN - {report_id}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #070B14; color: #E2E8F0; padding: 40px; margin: 0; }}
+        .header {{ border-bottom: 2px solid #00E5FF; padding-bottom: 20px; margin-bottom: 30px; }}
+        .classification {{ display: inline-block; padding: 4px 12px; background: #EF4444; color: #fff; font-weight: bold; font-size: 12px; letter-spacing: 2px; border-radius: 4px; }}
+        h1 {{ color: #00E5FF; margin: 16px 0 8px 0; font-size: 28px; }}
+        .meta-strip {{ color: #94A3B8; font-size: 13px; font-family: monospace; }}
+        .section {{ background: rgba(17, 28, 51, 0.7); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 8px; padding: 20px; margin-bottom: 20px; }}
+        .section h2 {{ color: #F59E0B; margin-top: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }}
+        .statute-pill {{ display: inline-block; background: rgba(0, 229, 255, 0.15); color: #00E5FF; padding: 4px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin: 4px 4px 4px 0; }}
+        .footer {{ margin-top: 40px; border-top: 1px solid #1E293B; padding-top: 20px; font-size: 11px; color: #64748B; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span class="classification">OFFICIAL MARITIME INTELLIGENCE BULLETIN</span>
+        <h1>{rep.get("report_id", report_id)}</h1>
+        <div class="meta-strip">MISSION: {rep.get("mission_id")} | TARGET: {rep.get("target_detection_id")} | THREAT TIER: {rep.get("threat_tier")} | SHA256: {checksum[:16]}...</div>
+    </div>
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>{rep.get("executive_summary")}</p>
+    </div>
+    <div class="section">
+        <h2>Attributed Vessel & Radar Telemetry</h2>
+        <p>{rep.get("vessel_characteristics_summary")}</p>
+        <p>{rep.get("ais_status_summary")}</p>
+        <p>{rep.get("identity_attribution_summary")}</p>
+    </div>
+    <div class="section">
+        <h2>Sanctions & Sovereignty Evaluation</h2>
+        <p>{rep.get("sanctions_findings")}</p>
+        <p>{rep.get("geospatial_eez_analysis")}</p>
+    </div>
+    <div class="section">
+        <h2>Statutory Citations & Directives</h2>
+        <div>{''.join(f'<span class="statute-pill">{v}</span>' for v in rep.get("statutory_violations", []))}</div>
+        <ul style="margin-top: 15px; color: #E2E8F0;">
+            {''.join(f'<li>{r}</li>' for r in rep.get("actionable_recommendations", []))}
+        </ul>
+    </div>
+    <div class="section">
+        <h2>Analyst Confidence & Limitations Statement</h2>
+        <p style="font-style: italic; color: #94A3B8;">{rep.get("analyst_confidence_statement")}</p>
+    </div>
+    <div class="footer">
+        PROVENANCE: MULTI-AGENT COMPILATION (DVD-MDA v1.0.0) | INTEGRITY LEDGER HASH: {checksum} | AUTOMATIC EXPORT
+    </div>
+</body>
+</html>"""
+        return HTMLResponse(content=html_content)
+
+    return {
+        "status": "SUCCESS",
+        "format": "json",
+        "report_id": report_id,
+        "checksum_sha256": checksum,
+        "report": rep
     }
 
 

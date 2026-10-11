@@ -151,3 +151,77 @@ def test_api_hitl_submit():
     assert res_data["status"] == "SUCCESS"
     assert res_data["disposition"] == "APPROVED"
     assert "audit_trace" in res_data
+
+
+def test_api_meta_and_metrics():
+    """Validates platform metadata, provenance legend, and true feature count."""
+    response = client.get("/api/meta")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["version"] == "1.0.0"
+    assert data["feature_count"] >= 35
+    assert "citation_catalog" in data
+    assert len(data["citation_catalog"]) >= 4
+    assert "provenance_legend" in data
+    assert "REAL" in data["provenance_legend"]
+    assert "SYNTHETIC" in data["provenance_legend"]
+
+
+def test_api_audit_ledger():
+    """Validates hash-chained append-only audit ledger."""
+    response = client.get("/api/audit")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "SUCCESS"
+    assert data["total_entries"] >= 1
+    assert data["latest_hash"] is not None
+    # Verify hash chain integrity
+    ledger = data["ledger"]
+    for i in range(1, len(ledger)):
+        assert ledger[i]["prev_hash"] == ledger[i - 1]["hash"]
+
+
+def test_api_scenario_detail():
+    """Validates retrieval of individual scenario fixture by ID."""
+    response = client.get("/api/scenarios/SCN-DARK-001")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scenario_id"] == "SCN-DARK-001"
+    assert data["expected_classification"] == "DELIBERATE_DARK_EVASION"
+
+
+def test_api_report_export():
+    """Validates structured report export in JSON, GeoJSON, and print-ready HTML/PDF."""
+    inv_payload = {
+        "mission_id": "TEST-EXPORT-MISSION",
+        "sar_detection": {
+            "detection_id": "SAR-DET-EXP-01",
+            "scene_id": "S1A_ARABIAN_SEA",
+            "timestamp": "2026-09-20T12:00:00Z",
+            "latitude": 21.38,
+            "longitude": 64.18,
+            "length_m": 245.0,
+            "width_m": 42.0,
+            "aspect_ratio": 5.83,
+            "heading_deg": 240.0,
+            "confidence": 0.94
+        }
+    }
+    inv_res = client.post("/api/investigate", json=inv_payload)
+    assert inv_res.status_code == 200
+    report_id = inv_res.json()["final_report"]["report_id"]
+
+    # Export JSON
+    res_json = client.get(f"/api/report/{report_id}/export?format=json")
+    assert res_json.status_code == 200
+    assert "checksum_sha256" in res_json.json()
+
+    # Export GeoJSON
+    res_geo = client.get(f"/api/report/{report_id}/export?format=geojson")
+    assert res_geo.status_code == 200
+    assert res_geo.json()["type"] == "FeatureCollection"
+
+    # Export HTML/PDF
+    res_html = client.get(f"/api/report/{report_id}/export?format=html")
+    assert res_html.status_code == 200
+    assert "CLASSIFIED MARITIME INTELLIGENCE BULLETIN" in res_html.text

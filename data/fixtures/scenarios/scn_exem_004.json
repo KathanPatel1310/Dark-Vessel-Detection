@@ -1,0 +1,30 @@
+{
+  "scenario_id": "SCN-EXEM-004",
+  "scenario_name": "Artisanal Fishing Craft (Statutory Exemption)",
+  "scenario_type": "SMALL_CRAFT_EXEMPT",
+  "description": "19-meter local coastal craft operating 12km from shore, legally exempt from AIS carriage duty under SOLAS Chapter V Regulation 19.",
+  "expected_threat_tier": "LOW",
+  "expected_classification": "SMALL_CRAFT_EXEMPT",
+  "provenance": {
+    "radar": "DERIVED",
+    "ais": "UNAVAILABLE",
+    "legal_rule": "HEURISTIC",
+    "source": "SOLAS V/19 Carriage Exemption Rule"
+  },
+  "sar_detection": {
+    "detection_id": "SAR-DET-2026-EXEM-04",
+    "scene_id": "S1A_IW_GRDH_1SDV_20260920_GUJARAT_COAST",
+    "timestamp": "2026-09-20T10:00:00Z",
+    "latitude": 20.8500,
+    "longitude": 70.4000,
+    "length_m": 19.0,
+    "width_m": 5.2,
+    "aspect_ratio": 3.65,
+    "heading_deg": 90.0,
+    "confidence": 0.88,
+    "sensor": "Sentinel-1 C-SAR",
+    "polarization": "VV+VH"
+  },
+  "ais_observation": null,
+  "historical_gaps": []
+}

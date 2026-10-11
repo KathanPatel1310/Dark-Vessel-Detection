@@ -323,7 +323,8 @@ def forensic_assessor_node(state: MaritimeAgentState) -> Dict[str, Any]:
     risk_assessment, forecast = assess_risk_and_forecast(
         features=features,
         sanctions_result=sanctions_res,
-        geo_context=geo_ctx
+        geo_context=geo_ctx,
+        degradation_notes=state.degradation_notes
     )
 
     # Determine if Human-in-the-Loop oversight is required
