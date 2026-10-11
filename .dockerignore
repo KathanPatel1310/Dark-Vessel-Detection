@@ -1,0 +1,27 @@
+# Git & IDE
+.git
+.github
+.gitignore
+.vscode
+.idea
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Web / Node
+web/node_modules/
+web/dist/
+web/npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
