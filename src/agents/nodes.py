@@ -9,6 +9,7 @@ Implements the 6 primary agent nodes:
 Plus an explicit HumanReviewNode for Human-in-the-Loop review gates.
 """
 
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -34,9 +35,10 @@ def _append_trace(
     action: str,
     status: str = "SUCCESS",
     details: Optional[Dict[str, Any]] = None,
-    notes: Optional[str] = None
+    notes: Optional[str] = None,
+    latency_ms: Optional[float] = None
 ) -> List[AgentTraceEntry]:
-    """Helper to build updated trace entries without mutating prior state."""
+    """Helper to build updated trace entries with wall latency instrumentation without mutating prior state."""
     current_traces = list(state.execution_trace or [])
     new_step = len(current_traces) + 1
     new_entry = AgentTraceEntry(
@@ -44,6 +46,7 @@ def _append_trace(
         agent_name=agent_name,
         action_taken=action,
         status=status,
+        latency_ms=latency_ms,
         details=details or {},
         notes=notes
     )

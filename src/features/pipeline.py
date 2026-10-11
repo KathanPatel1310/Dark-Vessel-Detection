@@ -48,13 +48,23 @@ class FeaturePipeline:
         geo_feat = extract_geospatial_features(geo_context)
 
         # 4. Historical Features
+        # Compute dynamic route anomaly from AIS kinematics if track available
+        if ais_feat and ais_feat.trajectory_curvature is not None:
+            curvature_dev = min(1.0, max(0.0, (ais_feat.trajectory_curvature - 1.0) / 2.0))
+            heading_dev = ais_feat.heading_variance or 0.0
+            computed_route_anomaly = round(min(1.0, 0.6 * curvature_dev + 0.4 * heading_dev), 2)
+        elif candidate_ais is not None:
+            computed_route_anomaly = 0.15
+        else:
+            computed_route_anomaly = 0.85  # Unexplained non-transmitting radar contact
+
         hist_feat = HistoricalFeatures(
             prior_sanctions_involvement=prior_sanctions,
             flag_change_count_12m=flag_changes_12m,
             name_change_count_24m=0,
             historical_loitering_events_6m=1 if (ais_feat and ais_feat.loitering_duration_hours > 2.0) else 0,
             historical_sts_encounters_6m=1 if (geo_feat.proximity_to_sts_corridor_km and geo_feat.proximity_to_sts_corridor_km < 50.0) else 0,
-            route_anomaly_score=0.85 if not candidate_ais else 0.15
+            route_anomaly_score=computed_route_anomaly
         )
 
         # 5. Fusion Features

@@ -3,6 +3,7 @@ Carries typed state, multi-source evidence, agent execution logs, and graceful
 degradation notes across the agentic graph.
 """
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
@@ -20,6 +21,8 @@ class AgentTraceEntry(BaseModel):
     agent_name: str
     action_taken: str
     status: str = Field(default="SUCCESS", description="SUCCESS, DEGRADED, FAILED, SKIPPED")
+    latency_ms: Optional[float] = Field(default=None, description="Measured execution wall latency in milliseconds")
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat(), description="ISO timestamp")
     details: Dict[str, Any] = Field(default_factory=dict)
     notes: Optional[str] = None
 

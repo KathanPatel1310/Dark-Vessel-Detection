@@ -67,22 +67,33 @@ class SARVesselDetector:
             box_h = max(1, y2 - y1)
 
             # Physical length and beam width from pixel dimensions (10m per pixel)
-            # Length is major dimension, width is minor dimension
             dim_major_px = max(box_w, box_h)
             dim_minor_px = min(box_w, box_h)
-            
-            # Diagonal provides the maximum hull extent
-            diag_px = math.sqrt(box_w ** 2 + box_h ** 2)
-            length_m = round(dim_major_px * SENTINEL1_PIXEL_SPACING_M, 1)
-            width_m = round(max(5.0, dim_minor_px * SENTINEL1_PIXEL_SPACING_M), 1)
-            aspect_ratio = round(length_m / width_m, 2)
-            area_m2 = round(length_m * width_m * 0.75, 1) # Ship hull geometry approximation
 
-            # Estimate orientation (heading angle in degrees) from major axis
-            if box_w >= box_h:
-                heading_est = 90.0 if (x2 - x1) > 0 else 270.0
+            # Oriented bounding box and true major-axis orientation from radar reflection
+            crop_vv = vv_raw[y1:y2, x1:x2]
+            thresh_val = float(np.percentile(crop_vv, 70))
+            binary_mask = (crop_vv > thresh_val).astype(np.uint8) * 255
+            contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            if contours and len(contours[0]) >= 4:
+                largest_c = max(contours, key=cv2.contourArea)
+                (r_cx, r_cy), (r_w, r_h), r_angle = cv2.minAreaRect(largest_c)
+                major_dim_px = max(r_w, r_h)
+                minor_dim_px = max(1.0, min(r_w, r_h))
+                length_m = round(max(dim_major_px, major_dim_px) * SENTINEL1_PIXEL_SPACING_M, 1)
+                width_m = round(max(5.0, minor_dim_px * SENTINEL1_PIXEL_SPACING_M), 1)
+                if r_w < r_h:
+                    heading_est = round((r_angle + 90.0) % 360.0, 1)
+                else:
+                    heading_est = round(r_angle % 360.0, 1)
             else:
-                heading_est = 0.0 if (y2 - y1) > 0 else 180.0
+                length_m = round(dim_major_px * SENTINEL1_PIXEL_SPACING_M, 1)
+                width_m = round(max(5.0, dim_minor_px * SENTINEL1_PIXEL_SPACING_M), 1)
+                heading_est = 90.0 if box_w >= box_h else 0.0
+
+            aspect_ratio = round(length_m / width_m, 2)
+            area_m2 = round(length_m * width_m * 0.75, 1)  # Ship hull geometry approximation
 
             # Radiometric Backscatter Analysis on target pixels vs surrounding sea clutter
             target_mask = np.zeros((h, w), dtype=bool)
