@@ -7,6 +7,11 @@ import { useLenis } from './lib/useLenis';
 const Operations = lazy(() => import('./routes/Operations').then((m) => ({ default: m.Operations })));
 const AuditLedger = lazy(() => import('./routes/AuditLedger').then((m) => ({ default: m.AuditLedger })));
 const Methodology = lazy(() => import('./routes/Methodology').then((m) => ({ default: m.Methodology })));
+const Cases = lazy(() => import('./routes/Cases').then((m) => ({ default: m.Cases })));
+const SarLab = lazy(() => import('./routes/SarLab').then((m) => ({ default: m.SarLab })));
+const Screening = lazy(() => import('./routes/Screening').then((m) => ({ default: m.Screening })));
+const DataInventory = lazy(() => import('./routes/DataInventory').then((m) => ({ default: m.DataInventory })));
+const Results = lazy(() => import('./routes/Results').then((m) => ({ default: m.Results })));
 const DevPlayground = lazy(() => import('./routes/DevPlayground').then((m) => ({ default: m.DevPlayground })));
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -68,6 +73,11 @@ function Shell() {
               <Route path="/" element={<Showcase onLaunchOps={(id) => navigate(id ? `/ops/case/${id}` : '/ops')} />} />
               <Route path="/ops" element={<OpsRoute />} />
               <Route path="/ops/case/:caseId" element={<OpsRoute />} />
+              <Route path="/cases" element={<Cases />} />
+              <Route path="/sar-lab" element={<SarLab />} />
+              <Route path="/screening" element={<Screening />} />
+              <Route path="/data" element={<DataInventory />} />
+              <Route path="/results" element={<Results />} />
               <Route path="/audit" element={<AuditLedger />} />
               <Route path="/methodology" element={<Methodology />} />
               {import.meta.env.DEV && <Route path="/dev" element={<DevPlayground />} />}
