@@ -54,7 +54,8 @@ RUN pip install --no-cache-dir \
     ultralytics \
     reportlab \
     matplotlib \
-    python-multipart
+    python-multipart \
+    huggingface_hub
 
 # Copy repository source code and assets
 COPY src/ /app/src/
