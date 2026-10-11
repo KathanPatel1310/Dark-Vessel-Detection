@@ -1,171 +1,97 @@
-@charset "UTF-8";
+@import "tailwindcss";
+
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/inter-tight";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/instrument-serif/400-italic.css";
+
+@theme {
+  --font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
+  --font-display: "Inter Tight Variable", "Inter Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-stat: "Space Grotesk Variable", system-ui, sans-serif;
+  --font-accent: "Instrument Serif", Georgia, serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 :root {
-  /* Surfaces */
-  --bg-0: #070B14;
-  --bg-1: #0C1424;
-  --bg-2: #111C33;
-  --bg-surface: #0E1626;
-
-  /* Semantics */
-  --radar: #00E5FF;
-  --caution: #F59E0B;
-  --interdiction: #EF4444;
-  --nominal: #22C55E;
-  --hypothesis: #A78BFA;
-
-  /* Text & Grays */
-  --text-main: #F8FAFC;
-  --text-muted: #94A3B8;
-  --text-dim: #64748B;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-bright: rgba(0, 229, 255, 0.25);
-
-  /* Typography */
-  --font-display: 'Inter Tight', 'Inter', -apple-system, sans-serif;
-  --font-accent: 'Instrument Serif', Georgia, serif;
-  --font-body: 'Inter', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Space Mono', monospace;
-  --font-stat: 'Space Grotesk', -apple-system, sans-serif;
-
-  /* Easings */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
-
+  --bg-0: #070b14;
+  --radar: #00e5ff;
   color-scheme: dark;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+html {
+  background: var(--bg-0);
+  scroll-behavior: auto;
 }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
 
-html, body {
-  background-color: var(--bg-0);
-  color: var(--text-main);
-  font-family: var(--font-body);
-  overflow-x: hidden;
+body {
+  background: var(--bg-0);
+  color: #f8fafc;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
 }
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+#root { min-height: 100dvh; display: flex; flex-direction: column; }
 
-/* Glass Panels */
 .glass-panel {
   background: rgba(17, 28, 51, 0.65);
   backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
   border: 1px solid rgba(0, 229, 255, 0.14);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
-
 .glass-panel-elevated {
-  background: rgba(17, 28, 51, 0.85);
+  background: rgba(17, 28, 51, 0.88);
   backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
   border: 1px solid rgba(0, 229, 255, 0.25);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
-/* Radar Glow & Atmosphere */
-.radar-glow {
-  background: radial-gradient(circle, rgba(0, 229, 255, 0.12) 0%, rgba(7, 11, 20, 0) 70%);
-}
+.font-accent { font-family: var(--font-accent); font-style: italic; }
 
-.ocean-gradient {
-  background: linear-gradient(180deg, #070B14 0%, #0C1424 50%, #070B14 100%);
-}
-
-/* Typography Classes */
-.font-display {
-  font-family: var(--font-display);
-}
-
-.font-accent {
-  font-family: var(--font-accent);
-  font-style: italic;
-}
-
-.font-mono {
-  font-family: var(--font-mono);
-}
-
-.font-stat {
-  font-family: var(--font-stat);
-}
-
-/* Highlight Word Gradient */
 .accent-word {
   font-family: var(--font-accent);
   font-style: italic;
-  background: linear-gradient(135deg, #00E5FF 0%, #FFFFFF 100%);
+  font-weight: 400;
+  background: linear-gradient(135deg, #00e5ff 0%, #ffffff 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
-  padding-right: 0.15em;
-  position: relative;
-  display: inline-block;
+  padding-right: 0.04em;
 }
 
-.accent-word::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: 0.05em;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, #00E5FF, transparent);
-  border-radius: 2px;
+/* Scroll reveal (toggled by IntersectionObserver) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
 }
+.reveal.is-visible { opacity: 1; transform: none; }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #070b14; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #00e5ff; }
 
-::-webkit-scrollbar-track {
-  background: #070B14;
-}
+.leaflet-container { background: #070b14 !important; font-family: var(--font-mono) !important; }
+.leaflet-control-attribution { background: rgba(7, 11, 20, 0.8) !important; color: #64748b !important; }
 
-::-webkit-scrollbar-thumb {
-  background: #1E293B;
-  border-radius: 3px;
-}
+:focus-visible { outline: 2px solid var(--radar); outline-offset: 2px; }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #00E5FF;
-}
-
-/* Leaflet Dark Basemap Overrides */
-.leaflet-container {
-  background: #070B14 !important;
-  font-family: var(--font-mono) !important;
-}
-
-.leaflet-control-zoom a {
-  background: rgba(17, 28, 51, 0.9) !important;
-  color: #00E5FF !important;
-  border-color: rgba(0, 229, 255, 0.3) !important;
-}
-
-.leaflet-control-attribution {
-  background: rgba(7, 11, 20, 0.8) !important;
-  color: #64748B !important;
-  font-size: 10px !important;
-}
-
-/* Reduced Motion Mode Support */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
+  .reveal { opacity: 1; transform: none; }
+}
+
+.dark-tiles {
+  filter: invert(1) hue-rotate(190deg) brightness(0.75) contrast(0.9) saturate(0.6);
 }

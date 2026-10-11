@@ -82,15 +82,15 @@ export const AuditLedger = () => {
                   BLOCK #{entry.index}
                 </span>
                 <span className="text-white font-bold">{entry.action}</span>
-                <span className="text-[10px] text-slate-500">• {entry.operator}</span>
+                <span className="text-xs text-slate-500">• {entry.operator}</span>
               </div>
-              <span className="text-[10px] text-slate-400">{entry.timestamp}</span>
+              <span className="text-xs text-slate-400">{entry.timestamp}</span>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px]">
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="text-slate-500 block mb-1">ENTRY DETAILS:</span>
-                <pre className="p-2.5 rounded bg-[#070B14] border border-slate-800 text-slate-300 overflow-x-auto text-[10px]">
+                <pre className="p-2.5 rounded bg-[#070B14] border border-slate-800 text-slate-300 overflow-x-auto text-xs">
                   {JSON.stringify(entry.details, null, 2)}
                 </pre>
               </div>
@@ -98,14 +98,14 @@ export const AuditLedger = () => {
               <div className="space-y-2">
                 <div>
                   <span className="text-slate-500 block mb-1">PREVIOUS BLOCK HASH:</span>
-                  <div className="p-2 rounded bg-[#070B14] border border-slate-800/80 text-[10px] text-slate-400 break-all">
+                  <div className="p-2 rounded bg-[#070B14] border border-slate-800/80 text-xs text-slate-400 break-all">
                     {entry.prev_hash}
                   </div>
                 </div>
 
                 <div>
                   <span className="text-cyan-400 block mb-1">CURRENT BLOCK SHA-256:</span>
-                  <div className="p-2 rounded bg-cyan-950/20 border border-cyan-500/30 text-[10px] text-cyan-300 break-all font-bold">
+                  <div className="p-2 rounded bg-cyan-950/20 border border-cyan-500/30 text-xs text-cyan-300 break-all font-bold">
                     {entry.hash}
                   </div>
                 </div>

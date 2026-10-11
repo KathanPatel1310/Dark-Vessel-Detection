@@ -30,7 +30,7 @@ export const Methodology = () => {
               <div className="flex items-center gap-2 mb-1">
                 <ProvenanceChip provenance="REAL" />
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Empirical records parsed from official publications: U.S. OFAC SDN XML, UN Consolidated Sanctions, and sovereign EEZ treaties.
               </p>
             </div>
@@ -39,7 +39,7 @@ export const Methodology = () => {
               <div className="flex items-center gap-2 mb-1">
                 <ProvenanceChip provenance="DERIVED" />
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Mathematically calculated through deterministic physics: Haversine distance, OpenCV PCA bounding boxes, and target-to-clutter ratios.
               </p>
             </div>
@@ -48,7 +48,7 @@ export const Methodology = () => {
               <div className="flex items-center gap-2 mb-1">
                 <ProvenanceChip provenance="SYNTHETIC" />
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Procedurally generated radar chip scenarios and simulated AIS gap tracks used to benchmark pipeline performance.
               </p>
             </div>
@@ -57,7 +57,7 @@ export const Methodology = () => {
               <div className="flex items-center gap-2 mb-1">
                 <ProvenanceChip provenance="HEURISTIC" />
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Probabilistic expert system classifications derived from SOLAS thresholds and spatial proximity gates.
               </p>
             </div>
@@ -70,21 +70,21 @@ export const Methodology = () => {
           <div className="space-y-3 font-mono text-xs">
             <div className="p-3 rounded-lg bg-[#070B14] border border-slate-800">
               <div className="text-cyan-400 font-bold">SOLAS CHAPTER V, REGULATION 19</div>
-              <p className="text-[11px] text-slate-400 mt-1 font-sans">
+              <p className="text-xs text-slate-400 mt-1 font-sans">
                 Mandates that all passenger ships, all cargo ships of 500 gross tonnage and upwards not on international voyages, and all ships of 300 gross tonnage and upwards on international voyages shall maintain continuous automatic identification systems (AIS). Vessels &lt;30m operating near coastlines are exempt.
               </p>
             </div>
 
             <div className="p-3 rounded-lg bg-[#070B14] border border-slate-800">
               <div className="text-cyan-400 font-bold">UNCLOS ARTICLE 73 (EEZ ENFORCEMENT)</div>
-              <p className="text-[11px] text-slate-400 mt-1 font-sans">
+              <p className="text-xs text-slate-400 mt-1 font-sans">
                 Affirms the sovereign coastal State's rights in its 200 nautical mile Exclusive Economic Zone (EEZ) to take enforcement measures, including boarding, inspection, arrest, and judicial proceedings.
               </p>
             </div>
 
             <div className="p-3 rounded-lg bg-[#070B14] border border-slate-800">
               <div className="text-cyan-400 font-bold">UNCLOS ARTICLE 110 (RIGHT OF VISIT)</div>
-              <p className="text-[11px] text-slate-400 mt-1 font-sans">
+              <p className="text-xs text-slate-400 mt-1 font-sans">
                 Confers the authority upon commissioned naval warships to board foreign merchant vessels reasonably suspected of sailing without nationality or concealing identification.
               </p>
             </div>

@@ -59,11 +59,11 @@ export const ProvenanceChip = ({
   return (
     <span
       title={source ? `${config.desc} • Source: ${source}` : config.desc}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono tracking-wider border uppercase cursor-help transition-colors ${config.bg} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono tracking-wider border uppercase cursor-help transition-colors ${config.bg} ${className}`}
     >
       <Icon className="w-3 h-3 shrink-0" />
       <span>{config.label}</span>
-      {source && <span className="opacity-50 text-[9px] lowercase">• {source.split('/')[0]}</span>}
+      {source && <span className="opacity-50 text-xs lowercase">• {source.split('/')[0]}</span>}
     </span>
   );
 };
