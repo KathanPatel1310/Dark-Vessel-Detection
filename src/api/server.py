@@ -347,6 +347,8 @@ def load_scenario_fixtures() -> List[Dict[str, Any]]:
 
 @app.get("/api/health")
 @app.get("/health")
+@app.get("/readyz")
+@app.get("/api/readyz")
 def get_health():
     """System health check and live production asset statistics."""
     sanctions_db = get_sanctions_db(allow_fallback=True)
@@ -355,8 +357,16 @@ def get_health():
 
     return {
         "status": "ONLINE",
+        "ready": True,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0",
+        "components": {
+            "detector": {"status": "READY", "model": "YOLOv8-SAR", "weights": "models/sar_detector/unquantized/best.pt"},
+            "sanctions": {"status": "READY" if vessels_indexed > 0 else "DEGRADED", "indexed_vessels": vessels_indexed},
+            "eez": {"status": "READY" if eez_checker else "DEGRADED", "coverage": "Arabian Sea"},
+            "graph": {"status": "READY", "nodes": 7, "framework": "LangGraph"},
+            "llm": {"status": "DEGRADED_FALLBACK_RULE", "adapter": "models/qwen_lora (optional local)"}
+        },
         "assets": {
             "sar_satellite_detections": 35000,
             "commercial_ais_points": 103120,
