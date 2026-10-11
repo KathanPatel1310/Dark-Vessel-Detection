@@ -75,11 +75,15 @@ class RealSARChip:
         """Loads a .npz chip archive from local disk."""
         data = np.load(file_path, allow_pickle=True)
         acq_raw = str(data["acq_time"])
-        try:
-            # Parse format like '20240811T001843'
-            acq_dt = datetime.strptime(acq_raw, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
-        except Exception:
-            acq_dt = datetime.now(timezone.utc)
+        acq_dt = None
+        for fmt in ("%Y%m%dT%H%M%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"):
+            try:
+                acq_dt = datetime.strptime(acq_raw, fmt).replace(tzinfo=timezone.utc)
+                break
+            except ValueError:
+                continue
+        if acq_dt is None:
+            raise ValueError(f"Unparseable acquisition time {acq_raw!r} in {file_path}")
 
         return cls(
             chip_path=file_path,

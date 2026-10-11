@@ -54,13 +54,16 @@ class MaritimeRiskScorer:
             prob += 0.30
             risk_factors.append(f"Commercial hull ({length:.1f}m) legally mandated to broadcast AIS under SOLAS V/19.")
 
+        if not geo_context.in_coverage:
+            risk_factors.append("Geospatial context unavailable: position is outside the regional EEZ/STS dataset, so offshore and STS factors were not applied.")
+
         # Offshore / Deepwater factor
-        if geo_context.distance_to_coast_km > 100.0:
+        if geo_context.in_coverage and geo_context.distance_to_coast_km > 100.0:
             prob += 0.15
             risk_factors.append(f"Operating in deep international waters ({geo_context.distance_to_coast_km:.1f}km offshore).")
 
         # Proximity to designated STS transfer corridor
-        if geo_context.distance_to_sts_zone_km and geo_context.distance_to_sts_zone_km < 80.0:
+        if geo_context.in_coverage and geo_context.distance_to_sts_zone_km and geo_context.distance_to_sts_zone_km < 80.0:
             prob += 0.15
             risk_factors.append(f"Within {geo_context.distance_to_sts_zone_km:.1f}km of {geo_context.nearest_sts_zone_name}.")
 
@@ -97,7 +100,7 @@ class MaritimeRiskScorer:
         if sanctions_result.is_sanctioned:
             sanctions_level = "CRITICAL" if sanctions_result.overall_sanctions_risk == "CONFIRMED" else "HIGH"
             factors.append(f"Confirmed sanctions match against {sanctions_result.query_target} ({sanctions_result.screening_notes})")
-        elif geo_context.distance_to_sts_zone_km and geo_context.distance_to_sts_zone_km < 50.0:
+        elif geo_context.in_coverage and geo_context.distance_to_sts_zone_km and geo_context.distance_to_sts_zone_km < 50.0:
             sanctions_level = "ELEVATED"
             factors.append(f"Proximity to high-risk sanctions evasion STS zone: {geo_context.nearest_sts_zone_name}")
 
@@ -110,7 +113,7 @@ class MaritimeRiskScorer:
             else:
                 eez_threat = "LOW"
         else:
-            if geo_context.distance_to_eez_boundary_km < 30.0:
+            if geo_context.in_coverage and geo_context.distance_to_eez_boundary_km < 30.0:
                 eez_threat = "MODERATE"
                 factors.append(f"Vessel within {geo_context.distance_to_eez_boundary_km:.1f}km of sovereign EEZ border.")
 

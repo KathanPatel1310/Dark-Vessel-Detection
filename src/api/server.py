@@ -23,7 +23,7 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, Response
 from pydantic import BaseModel, Field
 
 # Core system imports
@@ -52,6 +52,7 @@ from src.geospatial.eez_checker import RealEEZChecker, haversine_km
 from src.features.pipeline import FeaturePipeline
 from src.analytics.risk_scorer import MaritimeRiskScorer
 from src.data.sanctions_parser import RealSanctionsDatabase
+from src.data import real_cases
 from src.agents.graph import build_maritime_intelligence_graph
 from src.agents.tools import (
     get_eez_checker,
@@ -86,6 +87,10 @@ HITL_SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 # In-memory cache for compiled intelligence reports
 GENERATED_REPORTS: Dict[str, Any] = {}
+
+# Full investigation context per mission (everything the PDF dossier needs)
+CASE_CONTEXTS: Dict[str, Dict[str, Any]] = {}
+CASES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "processed", "cases"))
 
 # Hash-chained append-only audit ledger
 AUDIT_LEDGER: List[Dict[str, Any]] = []
@@ -150,6 +155,11 @@ class InvestigationRequest(BaseModel):
     simulate_ais_offline: bool = False
     simulate_sanctions_offline: bool = False
     human_feedback: Optional[str] = None
+    chip_id: Optional[str] = None
+    scenario_id: Optional[str] = None
+    ground_truth_ais: Optional[AISObservation] = None
+    provenance: Optional[Dict[str, Any]] = None
+    all_detections: Optional[List[Dict[str, Any]]] = None
 
 
 class HITLSubmitRequest(BaseModel):
@@ -537,39 +547,27 @@ async def detect_sar_vessel(
     if chip_file is not None:
         try:
             contents = await chip_file.read()
-            # If uploaded .npy array or image
-            length_est = 185.0
-            beam_est = 31.0
-            tcr_db = 16.5
-            conf = 0.92
-            
-            det = SARDetection(
-                detection_id=f"SAR-UPL-{datetime.now().strftime('%M%S')}",
-                scene_id="SENTINEL1_UPLOADED_CHIP",
-                timestamp=datetime.now(timezone.utc),
-                latitude=20.5000,
-                longitude=65.0000,
-                length_m=length_est,
-                width_m=beam_est,
-                aspect_ratio=round(length_est / beam_est, 2),
-                heading_deg=180.0,
-                confidence=conf,
-                sensor="Sentinel-1 C-Band",
-                polarization="Dual-Pol VV/VH"
-            )
-            return {
-                "status": "SUCCESS",
-                "source": "UPLOADED_CHIP",
-                "detection": det.model_dump(),
-                "radiometrics": {
-                    "tcr_db": tcr_db,
-                    "target_mask_pixels": 450,
-                    "clutter_guard_db": -24.2,
-                    "target_mean_db": -7.7
-                }
-            }
+            if len(contents) > 25 * 1024 * 1024:
+                raise ValueError("chip file exceeds the 25 MB limit")
+            chip, dets = real_cases.detect_uploaded(contents, chip_file.filename or "upload.npz", confidence_threshold)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid radar chip: {e}")
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to process uploaded radar chip: {e}")
+        primary = real_cases.primary_detection(dets, chip.chip_vv.shape)
+        return {
+            "status": "SUCCESS",
+            "source": "UPLOADED_CHIP",
+            "provenance": "DERIVED",
+            "detection": primary.model_dump(mode="json") if primary else None,
+            "all_detections": [d.model_dump(mode="json") for d in dets],
+            "radiometrics": {
+                "tcr_db": primary.target_clutter_ratio_db if primary else None,
+                "clutter_guard_db": primary.background_mean_db if primary else None,
+                "target_mean_db": primary.mean_backscatter_db if primary else None,
+            },
+        }
+
 
     # 2. Preset scenario lookup
     if preset_scenario_id:
@@ -719,6 +717,37 @@ def run_autonomous_investigation(req: InvestigationRequest):
         rep_id = rep_dict.get("report_id", mission_id)
         GENERATED_REPORTS[rep_id] = rep_dict
         GENERATED_REPORTS[mission_id] = rep_dict
+
+    def _dump(x: Any) -> Any:
+        return x.model_dump(mode="json") if hasattr(x, "model_dump") else x
+
+    final_degradation = final_state_dict.get("degradation_notes", []) if isinstance(final_state_dict, dict) else final_state_dict.degradation_notes
+    ctx = {
+        "mission_id": mission_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "request": req.model_dump(mode="json"),
+        "detection": _dump(req.sar_detection),
+        "ais_used": _dump(None if req.simulate_ais_offline else req.matched_ais),
+        "execution_trace": exec_trace,
+        "risk_assessment": _dump(risk_assessment),
+        "forecast": _dump(forecast),
+        "geo_context": _dump(geo_context),
+        "features": _dump(features),
+        "sanctions": _dump(sanctions_res),
+        "report": rep_dict,
+        "degradation_notes": list(final_degradation or []),
+        "human_in_the_loop_required": bool(hitl_flag),
+        "session_id": session_id,
+    }
+    CASE_CONTEXTS[mission_id] = ctx
+    if rep_dict:
+        CASE_CONTEXTS[rep_dict.get("report_id", mission_id)] = ctx
+    try:
+        os.makedirs(CASES_DIR, exist_ok=True)
+        with open(os.path.join(CASES_DIR, f"{mission_id}.json"), "w", encoding="utf-8") as fh:
+            json.dump(ctx, fh, default=str)
+    except OSError as e:
+        logger.warning(f"Could not persist case {mission_id}: {e}")
 
     append_to_audit_ledger(
         action="INVESTIGATION_COMPLETED",
@@ -907,6 +936,141 @@ def export_report(report_id: str, format: str = Query("json")):
         "checksum_sha256": checksum,
         "report": rep
     }
+
+
+# ---------------------------------------------------------------------------
+# Real data: Sentinel-1 case library, chip imagery, inventory
+# ---------------------------------------------------------------------------
+
+@app.get("/api/cases/real")
+def list_real_cases(q: Optional[str] = None, limit: int = Query(200, ge=1, le=500)):
+    """Index of the real Sentinel-1 chips (with co-registered real AIS ground truth)."""
+    rows = real_cases.list_cases()
+    if q:
+        needle = q.lower()
+        rows = [r for r in rows if needle in r["vessel_name"].lower() or needle in r["mmsi"] or needle in r["vessel_type"].lower()]
+    return {"total": len(rows), "source": real_cases.DATASET_SOURCE, "provenance": "REAL", "cases": rows[:limit]}
+
+
+@app.get("/api/cases/real/{chip_id}")
+def get_real_case(chip_id: str, withhold_ais: bool = False, conf: float = Query(0.35, ge=0.05, le=0.95)):
+    """Runs the YOLO detector on a real chip and returns an investigation-ready case."""
+    try:
+        return real_cases.build_case(chip_id, withhold_ais=withhold_ais, conf=conf)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/api/chips/{chip_id}/image")
+def get_chip_image(chip_id: str, band: str = Query("vv", pattern="^(vv|vh|rgb)$"), boxes: bool = True,
+                   conf: float = Query(0.35, ge=0.05, le=0.95)):
+    """dB-stretched PNG of a real SAR chip, optionally annotated with detector boxes."""
+    try:
+        png = real_cases.render_chip_png(chip_id, band=band, boxes=boxes, conf=conf)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return Response(content=png, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
+
+
+_INVENTORY_CACHE: Dict[str, Any] = {}
+
+
+@app.get("/api/data/inventory")
+def get_data_inventory():
+    """Every data asset the platform uses, with its true provenance (REAL / DERIVED / SYNTHETIC)."""
+    if _INVENTORY_CACHE:
+        return _INVENTORY_CACHE
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+    def rel(*parts: str) -> str:
+        return os.path.join(root, *parts)
+
+    assets: List[Dict[str, Any]] = []
+
+    chips = real_cases.list_cases()
+    times = sorted(c["acq_time"] for c in chips)
+    assets.append({
+        "id": "sar_chips", "name": "Sentinel-1 SAR chips (VV+VH)", "provenance": "REAL", "count": len(chips), "unit": "chips",
+        "size_bytes": sum(c["size_bytes"] for c in chips), "path": "data/raw/sar/chips/*.npz",
+        "source": real_cases.DATASET_SOURCE,
+        "details": f"Acquired {times[0][:10]} to {times[-1][:10]}; located off the US Gulf coast (outside the Arabian Sea EEZ dataset)." if times else "",
+    })
+    assets.append({
+        "id": "chip_ais", "name": "Co-registered AIS for each chip", "provenance": "REAL", "count": len(chips), "unit": "vessels",
+        "path": "data/raw/sar/chips/*.npz", "source": real_cases.DATASET_SOURCE,
+        "details": "MMSI, name, type, true length, SOG and heading at acquisition time.",
+    })
+
+    db = get_sanctions_db(allow_fallback=True)
+    for fname, label, src in (("sdn.xml", "OFAC SDN list", "U.S. Treasury OFAC"), ("un_consolidated.xml", "UN Security Council consolidated list", "UN Security Council")):
+        fpath = rel("data", "raw", "sanctions", fname)
+        if os.path.exists(fpath):
+            assets.append({
+                "id": fname, "name": label, "provenance": "REAL", "size_bytes": os.path.getsize(fpath),
+                "path": f"data/raw/sanctions/{fname}", "source": src, "sha256": real_cases.sha256_file(fpath),
+                "details": "Official designation list parsed into an in-memory IMO/MMSI/name index.",
+            })
+    assets.append({
+        "id": "sanctions_index", "name": "Sanctioned vessels indexed", "provenance": "REAL",
+        "count": db.total_vessels_indexed if db else 0, "unit": "vessels", "path": "in-memory index", "source": "OFAC + UN", "details": "",
+    })
+
+    eez = rel("data", "raw", "geospatial", "arabian_sea_eez.geojson")
+    if os.path.exists(eez):
+        assets.append({
+            "id": "eez", "name": "EEZ / maritime zone polygons", "provenance": "REAL", "count": len(get_eez_checker().zones), "unit": "polygons",
+            "size_bytes": os.path.getsize(eez), "path": "data/raw/geospatial/arabian_sea_eez.geojson", "sha256": real_cases.sha256_file(eez),
+            "source": "Regional UNCLOS zones (Arabian Sea only). Exact upstream dataset is not recorded in the repo.",
+            "details": "Chips outside this region get no EEZ/STS context.",
+        })
+
+    csv = rel("data", "raw", "sar", "real_sar_detections.csv")
+    if os.path.exists(csv):
+        with open(csv, "rb") as fh:
+            n = max(sum(1 for _ in fh) - 1, 0)
+        assets.append({
+            "id": "synthetic_detections", "name": "Large SAR detection table", "provenance": "SYNTHETIC", "count": n, "unit": "rows",
+            "size_bytes": os.path.getsize(csv), "path": "data/raw/sar/real_sar_detections.csv",
+            "source": "Generated by src/data/download_high_volume_bundle.py", "details": "Filename says 'real' but rows are procedurally generated.",
+        })
+    pq = rel("data", "raw", "ais", "real_ais_traffic.parquet")
+    if os.path.exists(pq):
+        try:
+            import pyarrow.parquet as papq
+            n = papq.ParquetFile(pq).metadata.num_rows
+        except Exception:
+            n = None
+        assets.append({
+            "id": "synthetic_ais", "name": "AIS traffic table", "provenance": "SYNTHETIC", "count": n, "unit": "pings",
+            "size_bytes": os.path.getsize(pq), "path": "data/raw/ais/real_ais_traffic.parquet",
+            "source": "Generated by src/data/download_high_volume_bundle.py", "details": "Filename says 'real' but rows are procedurally generated.",
+        })
+    fixtures = load_scenario_fixtures()
+    assets.append({
+        "id": "scenarios", "name": "Benchmark scenarios", "provenance": "SYNTHETIC", "count": len(fixtures), "unit": "scenarios",
+        "path": "data/fixtures/scenarios/*.json", "source": "Hand-written test fixtures", "details": "Used to exercise each decision path deterministically.",
+    })
+    det = rel("models", "sar_detector", "unquantized", "best.pt")
+    if os.path.exists(det):
+        assets.append({
+            "id": "detector", "name": "YOLO SAR vessel detector", "provenance": "REAL", "size_bytes": os.path.getsize(det),
+            "path": "models/sar_detector/unquantized/best.pt", "sha256": real_cases.sha256_file(det), "source": "Trained weights", "details": "",
+        })
+    llm = rel("models", "maritime_qwen_merged", "model.safetensors")
+    if os.path.exists(llm):
+        assets.append({
+            "id": "llm", "name": "Qwen 2.5 maritime model (merged LoRA)", "provenance": "REAL", "size_bytes": os.path.getsize(llm),
+            "path": "models/maritime_qwen_merged", "source": "Fine-tuned on rule-generated report examples",
+            "details": "Used only to draft report prose; numbers and citations come from code.",
+        })
+
+    tally: Dict[str, int] = {}
+    for a in assets:
+        tally[a["provenance"]] = tally.get(a["provenance"], 0) + 1
+    _INVENTORY_CACHE.update({"assets": assets, "tally": tally, "generated_at": datetime.now(timezone.utc).isoformat()})
+    return _INVENTORY_CACHE
 
 
 # ---------------------------------------------------------------------------

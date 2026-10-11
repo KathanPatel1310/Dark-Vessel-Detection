@@ -96,16 +96,23 @@ def mission_controller_node(state: MaritimeAgentState) -> Dict[str, Any]:
         "distance_to_coast_km": geo_ctx.distance_to_coast_km
     }
 
+    degradation_notes = list(state.degradation_notes or [])
+    if not geo_ctx.in_coverage:
+        degradation_notes.append("Position is outside the bundled EEZ/STS dataset coverage: geospatial risk factors were not applied.")
+        details["in_coverage"] = False
+
     trace = _append_trace(
         state=state,
         agent_name="MissionController",
         action="INITIALIZE_MISSION_AND_GEOCONTEXT",
-        status="SUCCESS",
+        status="SUCCESS" if geo_ctx.in_coverage else "DEGRADED",
         details=details,
-        notes=f"Mission initialized for AOI: {geo_ctx.eez_country or 'International Waters'}."
+        notes=(f"Mission initialized for AOI: {geo_ctx.eez_country or 'International Waters'}."
+               if geo_ctx.in_coverage else "Mission initialized; geospatial context unavailable (outside dataset coverage).")
     )
 
     return {
+        "degradation_notes": degradation_notes,
         "active_detection": detection,
         "geo_context": geo_ctx,
         "current_node": "MissionController",

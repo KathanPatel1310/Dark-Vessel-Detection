@@ -6,7 +6,7 @@
   "expected_threat_tier": "CRITICAL",
   "expected_classification": "CORRELATED_BENIGN",
   "provenance": {
-    "radar": "DERIVED",
+    "radar": "SYNTHETIC",
     "ais": "REAL",
     "sanctions": "REAL",
     "source": "OFAC SDN sdn.xml + AIS snapshot"

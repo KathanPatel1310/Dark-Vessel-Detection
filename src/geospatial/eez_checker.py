@@ -77,6 +77,18 @@ class RealEEZChecker:
                 })
         logger.info(f"Loaded {len(self.zones)} real maritime zones from {self.geojson_path}")
 
+    COVERAGE_MARGIN_DEG = 5.0
+
+    def has_coverage(self, lat: float, lon: float) -> bool:
+        """True when the point lies within (a margin around) the bundled regional polygons."""
+        if not self.zones:
+            return False
+        bounds = [z["polygon"].bounds for z in self.zones]
+        minx = min(b[0] for b in bounds); miny = min(b[1] for b in bounds)
+        maxx = max(b[2] for b in bounds); maxy = max(b[3] for b in bounds)
+        m = self.COVERAGE_MARGIN_DEG
+        return (minx - m) <= lon <= (maxx + m) and (miny - m) <= lat <= (maxy + m)
+
     def compute_distance_to_coast_km(self, lat: float, lon: float) -> float:
         """Computes distance to nearest coastal node."""
         min_dist = float("inf")
@@ -130,6 +142,9 @@ class RealEEZChecker:
                     risk_tags.append(f"PROXIMITY_{s['name'].upper().replace(' ', '_')}")
 
         dist_coast = self.compute_distance_to_coast_km(lat, lon)
+        in_coverage = self.has_coverage(lat, lon)
+        if not in_coverage:
+            risk_tags = ["OUTSIDE_DATASET_COVERAGE"]
         
         # Approximate distance to EEZ boundary line
         dist_eez_border = 35.0 if inside_eez else max(15.0, dist_coast - 370.0) # ~200 nautical miles = 370.4 km
@@ -149,5 +164,6 @@ class RealEEZChecker:
             inside_rfmo=False,
             nearest_sts_zone_name=nearest_sts,
             distance_to_sts_zone_km=min_sts_dist,
+            in_coverage=in_coverage,
             risk_zone_tags=risk_tags
         )

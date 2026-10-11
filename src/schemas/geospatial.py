@@ -20,4 +20,5 @@ class GeoContext(BaseModel):
     inside_rfmo: bool = Field(default=False, description="Inside a Regional Fisheries Management Organization boundary")
     nearest_sts_zone_name: Optional[str] = Field(None, description="Nearest known Ship-to-Ship transfer corridor")
     distance_to_sts_zone_km: Optional[float] = Field(None, ge=0.0)
+    in_coverage: bool = Field(default=True, description="False when the point lies outside the regional EEZ/STS dataset; distance fields are then not meaningful")
     risk_zone_tags: List[str] = Field(default_factory=list, description="Descriptive tags (e.g. ['SANCTIONS_CORRIDOR', 'HIGH_TRAFFIC'])")

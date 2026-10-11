@@ -113,7 +113,8 @@ class SARVesselDetector:
             clutter_db = round(float(np.mean(clutter_pixels_db)), 2) if np.any(clutter_mask) else round(float(mean_db - 15.0), 2)
             tcr_db = round(float(mean_db - clutter_db), 2)
 
-            det_id = f"SAR-{chip.scene_id[-6:]}-{chip.mmsi[-4:]}-{idx:02d}"
+            chip_stem = os.path.splitext(os.path.basename(chip.chip_path))[0] if chip.chip_path else f"{chip.scene_id[:8]}-{chip.mmsi[-4:]}"
+            det_id = f"SAR-{chip_stem}-{idx:02d}"
 
             det = SARDetection(
                 detection_id=det_id,

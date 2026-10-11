@@ -6,7 +6,7 @@
   "expected_threat_tier": "LOW",
   "expected_classification": "SMALL_CRAFT_EXEMPT",
   "provenance": {
-    "radar": "DERIVED",
+    "radar": "SYNTHETIC",
     "ais": "UNAVAILABLE",
     "legal_rule": "HEURISTIC",
     "source": "SOLAS V/19 Carriage Exemption Rule"

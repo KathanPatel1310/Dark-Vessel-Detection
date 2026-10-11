@@ -6,7 +6,7 @@
   "expected_threat_tier": "LOW",
   "expected_classification": "CORRELATED_BENIGN",
   "provenance": {
-    "radar": "DERIVED",
+    "radar": "SYNTHETIC",
     "ais": "REAL",
     "fusion": "DERIVED",
     "source": "Commercial AIS Feed + Sentinel-1 Radar"

@@ -6,7 +6,7 @@
   "expected_threat_tier": "MEDIUM",
   "expected_classification": "AIS_SHADOW_ZONE",
   "provenance": {
-    "radar": "DERIVED",
+    "radar": "SYNTHETIC",
     "ais": "UNAVAILABLE",
     "registry": "DEGRADED",
     "source": "Simulated Degraded Sensor Network"
